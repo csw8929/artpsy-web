@@ -1,0 +1,63 @@
+/* Design tokens. The brief asks for editorial/minimal high-end: the levers are
+   whitespace, typographic contrast, and a near-monochrome palette — not colour.
+   Everything visual should resolve to a token here so the WordPress port
+   (Phase 2) can map these onto theme.json settings 1:1. */
+
+:root {
+  /* -- colour: paper and ink, one muted accent ------------------------- */
+  --c-paper:        #f7f5f2;
+  --c-paper-deep:   #efeae4;
+  --c-ink:          #14120f;
+  --c-ink-soft:     #4a463f;
+  --c-ink-faint:    #8b857b;
+  --c-accent:       #8a6a4f;   /* clay — pigment, not brand blue */
+  --c-line:         rgba(20, 18, 15, 0.12);
+
+  /* -- type ------------------------------------------------------------ */
+  /* Latin serif first, then a Korean myeongjo — no Latin serif carries Hangul,
+     so without an explicit Korean fallback the browser picks an arbitrary
+     system face and the editorial tone is lost on half the copy.
+     These are system fonts: a shipped brand site needs a licensed webfont,
+     which is an open requirement (see the risk register). */
+  --f-display: "Iowan Old Style", "Apple Garamond", Baskerville,
+               "Nanum Myeongjo", "AppleMyungjo", Batang, serif;
+  --f-body:    ui-sans-serif, system-ui, "Pretendard", "Apple SD Gothic Neo",
+               "Malgun Gothic", sans-serif;
+
+  /* Fluid scale. The contrast between display and body is what reads as
+     editorial; keep the ratio wide and the body small.
+     The display cap is set by the longest Korean headline that must hold two
+     lines — Hangul has no inter-word breaks to absorb overflow, so an oversized
+     cap strands a single syllable on its own line. */
+  --t-display: clamp(2.25rem, 5.2vw, 4.75rem);
+  --t-h2:      clamp(1.75rem, 3.2vw, 3rem);
+  --t-lead:    clamp(1.0625rem, 1.3vw, 1.375rem);
+  --t-body:    1rem;
+  --t-meta:    0.8125rem;
+
+  --lh-tight:  1.04;
+  --lh-normal: 1.6;
+  --ls-display: -0.03em;
+  --ls-meta:     0.14em;
+
+  /* -- space: generous, and on one scale -------------------------------- */
+  --s-1:  0.5rem;
+  --s-2:  1rem;
+  --s-3:  1.5rem;
+  --s-4:  2.5rem;
+  --s-5:  4rem;
+  --s-6:  6.5rem;
+  --s-7:  10rem;
+  --section-y: clamp(var(--s-5), 12vh, var(--s-7));
+
+  --measure: 34rem;          /* readable line length */
+  --page-max: 82rem;
+  --gutter: clamp(var(--s-2), 5vw, var(--s-5));
+
+  /* -- motion ----------------------------------------------------------- */
+  /* Restrained: the brief says "절제된 스크롤 인터랙션". Long durations with
+     soft easing read as considered; bouncy easing reads as a template. */
+  --e-out:   cubic-bezier(0.22, 1, 0.36, 1);
+  --d-fast:  0.35s;
+  --d-slow:  0.9s;
+}
