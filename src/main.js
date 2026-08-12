@@ -136,10 +136,19 @@ if (motionQuery.matches) {
     // landing later shifts the document height and leaves them stale.
     document.fonts?.ready.then(() => ScrollTrigger.refresh());
   } catch (err) {
-    // Dropping .js releases `.js [data-reveal] { opacity: 0 }`, so a half-done
-    // init degrades to a static page instead of a blank one.
-    document.documentElement.classList.remove("js");
+    // First, so the cause survives even if the teardown below throws too.
     console.error(err);
+    // Dropping .js releases `.js [data-reveal] { opacity: 0 }` — but that alone
+    // is not enough. Creating a scrollTrigger tween writes `opacity: 0` inline
+    // on its target immediately, and inline beats the stylesheet, so every
+    // element reached before the throw would stay hidden. stopMotion's
+    // `gsap.set(..., {opacity: 1})` overwrites those inline values, which is
+    // why the recovery reuses it rather than clearing props: clearProps would
+    // leave the already-created triggers armed, and they would hide the
+    // content again on scroll. This lands in the same state as the
+    // reduced-motion path, so there is one failure state to test, not four.
+    document.documentElement.classList.remove("js");
+    stopMotion();
   }
 
   motionQuery.addEventListener("change", (event) => {
