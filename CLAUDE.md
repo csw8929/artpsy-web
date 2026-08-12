@@ -6,6 +6,9 @@
 허브: `../MyPrivate`. 운영 규칙·역할·핸드오프는 거기 `CLAUDE.md`와 `.ai/`를 읽는다.
 팀: `artpsy` — 설정은 허브 `teams/artpsy.yml`.
 
+이슈 관리는 GitHub Issues로 한다 — 절차는 허브 `.ai/workflows/issue-flow.md`.
+라벨이 다음 담당을 지정하고, 카드는 홉 하나를 배달한다.
+
 요구사항과 리스크, 스택 결정 근거는 허브 `md/` vault에 있다 (이 repo에는 없다).
 
 ## 이 프로젝트 고유
