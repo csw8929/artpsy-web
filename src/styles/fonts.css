@@ -1,0 +1,29 @@
+/* Webfonts, deliberately unoptimised. This round measures the cost of shipping
+   Korean faces the way a site does before anyone has tuned them: the upstream
+   OFL originals, whole character set, no subsetting, no unicode-range split,
+   no preload, no size-adjust. Those are the levers the next round tests, so
+   none of them may be pulled here.
+
+   Family names match the fallbacks already named in tokens.css, so the stack
+   strings there do not change — the fallback is simply promoted to a real file.
+
+   Served locally: a third-party CDN would fold its own latency into the number
+   we are trying to attribute to the fonts themselves. */
+
+@font-face {
+  font-family: "Nanum Myeongjo";
+  src: url("../assets/fonts/NanumMyeongjo-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  /* FOUT is wanted: the metric difference between fallback and webfont is the
+     CLS this round is trying to observe. */
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("../assets/fonts/Pretendard-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
