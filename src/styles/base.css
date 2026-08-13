@@ -80,6 +80,11 @@ p { max-width: var(--measure); }
   overflow: clip;
 }
 
+/* The <picture> wrapper would otherwise be an in-flow grid item of .hero — an
+   empty one, but still a row. Its only child is absolutely positioned, so
+   taking the wrapper out of the box tree changes nothing else. */
+.hero picture { display: contents; }
+
 .hero__media {
   position: absolute;
   /* Coupled to `yPercent: 12` on the parallax tween (main.js). The -10% is the

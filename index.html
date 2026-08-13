@@ -15,8 +15,16 @@
 <body>
   <main>
     <section class="hero">
-      <img class="hero__media" src="/src/assets/img/hero-codes.jpg" alt=""
-           width="4710" height="3192" />
+      <!-- Art direction, not a width srcset: the hero box is 2.6:1 tall on a
+           phone while the art is 1.48:1 wide, so object-fit scales to height
+           and a width-picked source arrives ~3.5x too small. -->
+      <picture>
+        <source media="(orientation: portrait), (max-width: 768px)"
+                srcset="/src/assets/img/hero-codes-1080x1440.webp"
+                width="1080" height="1440" />
+        <img class="hero__media" src="/src/assets/img/hero-codes-2560.webp" alt=""
+             width="2560" height="1735" />
+      </picture>
       <div class="wrap">
         <p class="eyebrow">Art Therapy &amp; Psychology</p>
         <h1 class="display">말이 닿지 않는 곳에<br />색과 형태가 먼저 도착합니다</h1>

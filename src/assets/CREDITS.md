@@ -36,17 +36,28 @@ venv/bin/pyftsubset <원본> --text-file=<charset.txt> --output-file=<출력>.su
 `unicode-range` 분할은 넣지 않았다. Phase 1은 텍스트가 고정이라 안전하지만 CMS는 아니다 —
 2,350자 밖의 글자는 두부가 아니라 **글자 단위로 폴백 서체**가 되므로, 분할은 Phase 2 진입 전 항목이다.
 
-## 히어로 이미지 — `img/hero-codes.jpg`
+## 히어로 이미지 — `img/hero-codes-*.webp`
 
 - 원제: "Codes" Abstract Watercolor Painting by Bruce Black (2020)
 - 작가: Bruce Black
 - 라이선스: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
 - 출처: https://commons.wikimedia.org/wiki/File:%22Codes%22_Abstract_Watercolor_Painting_by_Bruce_Black_(2020).jpg
-- 원본 그대로: 4710 × 3192, 3,312,328 바이트, JPEG. 리사이즈·WebP/AVIF 변환·`srcset` 없음.
+
+| 파일 | 바이트 | 크기 | 조건 |
+|---|---:|---|---|
+| `hero-codes-2560.webp` | 489,722 | 2560×1735 | 기본 (가로) |
+| `hero-codes-1080x1440.webp` | 230,660 | 1080×1440 | `(orientation: portrait), (max-width: 768px)` |
+| `hero-codes.jpg` | 3,312,328 | 4710×3192 | 원본 (근거·재생성용, 배포 안 함) |
+
+둘 다 WebP q78. 폭 기반 `srcset`이 아니라 **`<picture>` 아트디렉션**이다 — 모바일에서 히어로
+박스는 세로 2.6:1인데 원본은 가로 1.48:1이라 `object-fit: cover`가 높이에 맞춰 확대한다.
+폭으로 고르면 3.5배 확대되어 뭉개진다.
+
+세로본은 3:4 **중앙 크롭**이다. 눈으로 확인하고 중앙을 택했다 — 노란 삼각형은 프레임 밖으로
+나가지만 잘리는 피사체가 없고 원형 모티프가 온전히 들어온다. 0.35 지점은 삼각형을 반으로 자른다.
 
 > CC BY-SA는 **표시 의무**가 있다. 이 파일이 기록을 대신하고 있으나, 실제 배포 시에는
 > 페이지에 보이는 크레딧이 필요하다.
-
 
 ## 저널 썸네일 — `img/journal/`
 
