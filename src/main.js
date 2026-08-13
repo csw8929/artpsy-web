@@ -3,7 +3,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import "./styles/base.css";
-import "./vitals.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
