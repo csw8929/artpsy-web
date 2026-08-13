@@ -1,28 +1,33 @@
-/* Webfonts, deliberately unoptimised. This round measures the cost of shipping
-   Korean faces the way a site does before anyone has tuned them: the upstream
-   OFL originals, whole character set, no subsetting, no unicode-range split,
-   no preload, no size-adjust. Those are the levers the next round tests, so
-   none of them may be pulled here.
+/* Subset webfonts. The unoptimised round measured 4,632,760 bytes for these two
+   faces; cutting the character set down to what Korean copy actually uses takes
+   them to 359,376. Compression could not have done this — the whole-set files
+   are already compressed, and no encoder removes glyphs nobody types.
 
-   Family names match the fallbacks already named in tokens.css, so the stack
-   strings there do not change — the fallback is simply promoted to a real file.
+   Subset range: KS X 1001's 2,350 common Hangul syllables, plus basic Latin,
+   digits, and punctuation including the CJK marks.
 
-   Served locally: a third-party CDN would fold its own latency into the number
-   we are trying to attribute to the fonts themselves. */
+   Still deliberately absent, so this round moves one variable: no preload
+   (it would trade bandwidth against the hero and blur the size delta), no
+   size-adjust (measured CLS was 0.003), and no unicode-range split — that one
+   is queued for Phase 2, where CMS copy can reach outside the 2,350.
+
+   Family names are author-chosen here and match the stack strings in
+   tokens.css, which is why subsetting did not touch that file. Served locally:
+   a third-party CDN would fold its own latency into the font's own cost. */
 
 @font-face {
   font-family: "Nanum Myeongjo";
-  src: url("../assets/fonts/NanumMyeongjo-Regular.ttf") format("truetype");
+  src: url("../assets/fonts/NanumMyeongjo-Regular.subset.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
-  /* FOUT is wanted: the metric difference between fallback and webfont is the
-     CLS this round is trying to observe. */
+  /* Kept: whether the swap still costs anything at this size is a measurement,
+     not an assumption. */
   font-display: swap;
 }
 
 @font-face {
   font-family: "Pretendard";
-  src: url("../assets/fonts/Pretendard-Regular.otf") format("opentype");
+  src: url("../assets/fonts/Pretendard-Regular.subset.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;

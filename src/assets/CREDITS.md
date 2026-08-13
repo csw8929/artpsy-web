@@ -1,20 +1,40 @@
 # 에셋 출처와 라이선스
 
-Phase 1 성능 실측(ARTPSY-3)을 위해 주입한 에셋이다. 전부 재배포 가능한 라이선스이며,
-**최적화하지 않은 상태**로 둔 것이 의도다 — 다음 라운드에서 같은 조건으로 재측정해 델타를 얻는다.
+Phase 1 성능 실측용 에셋이다. 전부 재배포 가능한 라이선스다.
+
+ARTPSY-3에서 **무최적화 상태로 주입해 최악 조건을 재고**, ARTPSY-11에서 **최적화해 델타를 얻는다.**
+이 문서는 최적화 라운드 이후 상태다. 절마다 원본과 배포본을 함께 적어 둔 것은 그 델타가
+이 프로젝트의 실측 근거이기 때문이다.
 
 
 ## 폰트 — `fonts/`
 
-| 파일 | 바이트 | 서체 | 라이선스 | 출처 |
+| 파일 | 바이트 | 역할 | 라이선스 | 출처 |
 |---|---:|---|---|---|
-| `NanumMyeongjo-Regular.ttf` | 3,058,408 | 나눔명조 Regular | SIL OFL 1.1 (`NanumMyeongjo-OFL.txt`) | https://github.com/google/fonts/tree/main/ofl/nanummyeongjo |
-| `Pretendard-Regular.otf` | 1,574,352 | Pretendard Regular | SIL OFL 1.1 (`Pretendard-OFL.txt`) | https://github.com/orioncactus/pretendard (v1.3.9) |
+| `NanumMyeongjo-Regular.subset.woff2` | 191,292 | display — **배포본** | SIL OFL 1.1 (`NanumMyeongjo-OFL.txt`) | 아래 원본에서 파생 |
+| `Pretendard-Regular.subset.woff2` | 168,084 | body — **배포본** | SIL OFL 1.1 (`Pretendard-OFL.txt`) | 아래 원본에서 파생 |
+| `NanumMyeongjo-Regular.ttf` | 3,058,408 | 원본 (근거·재생성용) | SIL OFL 1.1 | https://github.com/google/fonts/tree/main/ofl/nanummyeongjo |
+| `Pretendard-Regular.otf` | 1,574,352 | 원본 (근거·재생성용) | SIL OFL 1.1 | https://github.com/orioncactus/pretendard (v1.3.9) |
 
-합계 **4,632,760 바이트**. upstream 원본을 그대로 쓴다 — woff2 변환·서브셋·`unicode-range`
-분할·`preload`·`size-adjust` 전부 넣지 않았다. 나눔명조는 upstream에 woff2 배포본이 없어
-직접 변환해야 하는데, 그 변환 자체가 이번 라운드의 관측 대상이라 한쪽만 압축하면 델타가 오염된다.
+배포되는 것은 서브셋 2개 **합계 359,376 바이트**다. 무최적화 라운드의 4,632,760에서 7.8%로 줄었다.
+압축으로는 이 자리에 올 수 없다 — 전체 문자셋 파일도 이미 압축돼 있고, 아무도 쓰지 않는 글리프를
+지워주는 인코더는 없다. 원본은 지우지 않는다: 서브셋은 파생물이고 재생성의 근거가 원본이다.
+어느 것도 참조되지 않으므로 빌드 산출물에는 들어가지 않는다.
 
+**서브셋 범위**: KS X 1001 상용 한글 2,350자 + 기본 라틴 + 숫자 + 문장부호(CJK 포함) = 2,792자.
+한글 2,350자는 EUC-KR `0xB0A1`–`0xC8FE`를 디코딩해 얻었다 — 목록을 손으로 들고 있지 않아도 된다.
+
+**재생성** (도구는 스크래치패드 venv에 둔다. 프로젝트 의존성이 아니다):
+
+```bash
+python3 -m venv venv && venv/bin/pip install 'fonttools[woff]'
+venv/bin/pyftsubset <원본> --text-file=<charset.txt> --output-file=<출력>.subset.woff2 \
+  --flavor=woff2 --layout-features='kern,liga,calt,ccmp,locl' \
+  --no-hinting --desubroutinize --drop-tables+=DSIG
+```
+
+`unicode-range` 분할은 넣지 않았다. Phase 1은 텍스트가 고정이라 안전하지만 CMS는 아니다 —
+2,350자 밖의 글자는 두부가 아니라 **글자 단위로 폴백 서체**가 되므로, 분할은 Phase 2 진입 전 항목이다.
 
 ## 히어로 이미지 — `img/hero-codes.jpg`
 

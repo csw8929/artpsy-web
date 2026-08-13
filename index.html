@@ -4,6 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ARTPSY — 예술심리 · 프로토타입</title>
+  <!-- 폰트 preload는 재보고 뺐다. Slow 4G에서 프리로드 스캐너가 폰트를 CSS와 경쟁시키는데,
+       LCP 요소인 h1은 폴백 폰트로 그려지므로 CSS 도착에 묶여 있다. 대조 실험 결과
+       LCP 1,428 -> 1,548ms(+120), 폰트 도착 6,457 -> 5,672ms(-785) — 예산 항목을 팔아
+       예산 아닌 것을 사는 거래였다. 다시 넣게 되면 as=font·type=font/woff2와 함께
+       crossorigin이 반드시 필요하다 — 동일 출처라도 폰트 요청은 CORS 모드라, 빠지면
+       같은 파일을 두 번 받는다. Phase 2에서 CSS·폰트 우선순위 구조가 바뀌면 다시 볼 것. -->
   <meta name="description" content="미술치료와 심리상담을 위한 예술심리 브랜드. 인터랙션·타이포그래피 프로토타입." />
 </head>
 <body>
