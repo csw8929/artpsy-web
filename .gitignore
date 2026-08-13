@@ -6,3 +6,6 @@ dist/
 
 # machine-local: absolute paths to the hub, differs per machine
 .claude/
+
+# machine-local: 허브 링크와 세션 훅 (scripts/link.py project)
+/tools
