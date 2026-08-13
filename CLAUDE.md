@@ -19,12 +19,22 @@
 
 ## 현재 Phase
 
-**Phase 1 — 프론트엔드 프로토타입.** Vite + Lenis + GSAP ScrollTrigger.
-이 프로젝트에서 가장 위험한 것은 CMS 배선이 아니라 **하이엔드 인터랙션과 성능**이라, 그것부터
-실제로 돌려서 검증한다.
+**Phase 1 — 프론트엔드 프로토타입. 종료됨** (2026-08-13, `e72f1ae`). Vite + Lenis + GSAP
+ScrollTrigger. 이 프로젝트에서 가장 위험한 것은 CMS 배선이 아니라 **하이엔드 인터랙션과
+성능**이라, 그것부터 실제로 돌려서 검증했다. 이슈 4건 전부 종결.
 
-**Phase 2 — WordPress 블록 테마 이식.** PHP·Composer·Docker가 이 머신에 없어서 착수 불가.
+**Phase 2 — WordPress 블록 테마 이식. 착수.** Docker 28.1.1 + Compose v2.35.1이 이 머신에
+섰다(2026-08-13). 구동은 `@wordpress/env`로 하고 WordPress는 컨테이너의 PHP 8.x를 쓴다 —
+호스트 PHP 7.4는 대비책이고 `mbstring`·`zip`이 빠져 있다(20.04 universe/main 버전 핀 충돌).
+
 Phase 1의 토큰(`src/styles/tokens.css`)을 `theme.json`으로 매핑하는 것이 이식의 축이다.
+매핑 설계는 허브 `md/architect/20260811_artpsy-theme-json-매핑.md`가 정본이고,
+**그 §9의 미검증 가정 6건을 최소 테마로 먼저 확인한 뒤** 매핑표를 옮긴다 — 표를 다 옮긴
+뒤에 전제가 틀린 것을 발견하면 되돌리는 비용이 옮기는 비용과 같다.
+
+- 테마: `theme/artpsy/` · 구동 설정: `.wp-env.json` (둘 다 Phase 1 트리와 공존한다)
+- `docker` 그룹이 로그인 세션에 아직 안 붙었으면 `sg docker -c "..."` 로 감싼다.
+  영구 해결은 완전 로그아웃 후 재로그인이다.
 
 ## 지킬 것
 
