@@ -1,0 +1,11 @@
+/*
+Theme Name: artpsy
+Description: artpsy 블록 테마. 지금은 매핑 설계 §9의 미검증 가정을 확인하기 위한 최소 골격이고, 매핑표 전체는 아직 옮기지 않았다.
+Version: 0.1.0
+Requires at least: 6.6
+Requires PHP: 8.0
+Text Domain: artpsy
+*/
+
+/* 블록 테마의 필수 파일이라 존재한다. 시각적인 값은 theme.json이 정본이므로
+   여기에 규칙을 넣지 않는다 — 여기 쓰는 순간 Phase 2 이식이 수작업이 된다. */

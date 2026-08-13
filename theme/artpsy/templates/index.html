@@ -1,0 +1,23 @@
+<!-- wp:group {"tagName":"main","layout":{"type":"constrained"}} -->
+<main class="wp-block-group"><!-- wp:heading {"level":1,"align":"wide"} -->
+<h1 class="wp-block-heading alignwide">말이 닿지 않는 곳에 색과 형태가 먼저 도착합니다</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>V-5 판정용. 위 제목은 <code>align: wide</code>라 82rem을 써야 하고, 이 문단은 정렬이 없으므로 34rem에서 줄바꿈되어야 한다. 두 폭이 같게 나오면 3.6-A가 틀린 것이다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">정렬 없는 제목은 읽기 폭을 따른다</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>V-1 판정용. 한글은 기본값이 어절 중간에서 끊기므로 <code>word-break: keep-all</code>이 걸리지 않으면 이 문장은 단어가 잘린 채로 접힌다. 심리상담이라는낱말이나 미술치료프로그램처럼 붙여 쓴 긴 어절에서 차이가 분명하게 드러난다. 에디터와 프런트에서 같은 자리에서 끊기는지 본다.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"backgroundColor":"ink","textColor":"paper","layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull has-paper-color has-ink-background-color has-text-color has-background" style="padding-top:var(--wp--preset--spacing--80);padding-bottom:var(--wp--preset--spacing--80)"><!-- wp:paragraph -->
+<p>V-2 판정용. 이 그룹의 상하 패딩이 간격 프리셋 80(섹션)이고, 그 값은 <code>clamp()</code>가 다른 프리셋 둘을 참조하는 합성값이다. 슬라이더가 이 단계를 정상으로 다루는지 본다. 배경이 좌우 여백까지 덮으면 <code>useRootPaddingAwareAlignments</code>가 동작한 것이다.</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:group --></main>
+<!-- /wp:group -->

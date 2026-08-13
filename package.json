@@ -6,7 +6,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "wp:start": "wp-env start",
+    "wp:stop": "wp-env stop",
+    "wp:activate": "wp-env run cli wp theme activate artpsy"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +21,7 @@
     "lenis": "^1.3.26"
   },
   "devDependencies": {
+    "@wordpress/env": "^11.13.0",
     "vite": "^8.2.1"
   }
 }

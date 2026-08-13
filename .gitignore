@@ -4,6 +4,9 @@ dist/
 *.local
 .DS_Store
 
+# machine-local: wp-env 개인 오버라이드 (.wp-env.json 은 공용이라 추적한다)
+.wp-env.override.json
+
 # machine-local: absolute paths to the hub, differs per machine
 .claude/
 

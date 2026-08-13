@@ -1,0 +1,111 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "useRootPaddingAwareAlignments": true,
+    "layout": {
+      "contentSize": "34rem",
+      "wideSize": "82rem"
+    },
+    "color": {
+      "custom": false,
+      "customGradient": false,
+      "customDuotone": false,
+      "defaultPalette": false,
+      "defaultGradients": false,
+      "defaultDuotone": false,
+      "palette": [
+        { "slug": "paper", "name": "종이", "color": "#f7f5f2" },
+        { "slug": "ink", "name": "잉크", "color": "#14120f" },
+        { "slug": "ink-soft", "name": "잉크 연함", "color": "#4a463f" },
+        { "slug": "ink-faint", "name": "잉크 흐림", "color": "#8b857b" },
+        { "slug": "accent", "name": "클레이", "color": "#8a6a4f" }
+      ]
+    },
+    "typography": {
+      "customFontSize": false,
+      "defaultFontSizes": false,
+      "fluid": false,
+      "fontStyle": false,
+      "fontWeight": false,
+      "lineHeight": false,
+      "letterSpacing": false,
+      "textTransform": false,
+      "textDecoration": false,
+      "dropCap": false,
+      "fontSizes": [
+        { "slug": "display", "name": "디스플레이", "size": "clamp(2.25rem, 5.2vw, 4.75rem)", "fluid": false },
+        { "slug": "heading", "name": "제목", "size": "clamp(1.75rem, 3.2vw, 3rem)", "fluid": false },
+        { "slug": "lead", "name": "리드", "size": "clamp(1.0625rem, 1.3vw, 1.375rem)", "fluid": false },
+        { "slug": "body", "name": "본문", "size": "1rem", "fluid": false },
+        { "slug": "meta", "name": "메타", "size": "0.8125rem", "fluid": false }
+      ]
+    },
+    "spacing": {
+      "customSpacingSize": false,
+      "defaultSpacingSizes": false,
+      "units": ["rem"],
+      "padding": true,
+      "margin": true,
+      "blockGap": true,
+      "spacingSizes": [
+        { "slug": "10", "name": "1", "size": "0.5rem" },
+        { "slug": "20", "name": "2", "size": "1rem" },
+        { "slug": "30", "name": "3", "size": "1.5rem" },
+        { "slug": "40", "name": "4", "size": "2.5rem" },
+        { "slug": "50", "name": "5", "size": "4rem" },
+        { "slug": "60", "name": "6", "size": "6.5rem" },
+        { "slug": "70", "name": "7", "size": "10rem" },
+        { "slug": "80", "name": "섹션", "size": "clamp(var(--wp--preset--spacing--50), 12vh, var(--wp--preset--spacing--70))" }
+      ]
+    },
+    "border": {
+      "color": false,
+      "radius": false,
+      "style": false,
+      "width": false
+    },
+    "custom": {
+      "lineHeight": { "tight": "1.04", "normal": "1.6" },
+      "letterSpacing": { "display": "-0.03em" }
+    }
+  },
+  "styles": {
+    "color": {
+      "background": "var(--wp--preset--color--paper)",
+      "text": "var(--wp--preset--color--ink)"
+    },
+    "spacing": {
+      "padding": {
+        "left": "clamp(var(--wp--preset--spacing--20), 5vw, var(--wp--preset--spacing--50))",
+        "right": "clamp(var(--wp--preset--spacing--20), 5vw, var(--wp--preset--spacing--50))"
+      }
+    },
+    "typography": {
+      "fontSize": "var(--wp--preset--font-size--body)",
+      "lineHeight": "var(--wp--custom--line-height--normal)"
+    },
+    "elements": {
+      "h1": {
+        "typography": {
+          "fontSize": "var(--wp--preset--font-size--display)",
+          "lineHeight": "var(--wp--custom--line-height--tight)",
+          "letterSpacing": "var(--wp--custom--letter-spacing--display)",
+          "fontWeight": "400"
+        }
+      },
+      "h2": {
+        "typography": {
+          "fontSize": "var(--wp--preset--font-size--heading)",
+          "lineHeight": "1.15",
+          "letterSpacing": "-0.02em",
+          "fontWeight": "400"
+        }
+      },
+      "link": {
+        "color": { "text": "var(--wp--preset--color--accent)" }
+      }
+    },
+    "css": "body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; word-break: keep-all; overflow-wrap: break-word; } h1 { text-wrap: balance; }"
+  }
+}
