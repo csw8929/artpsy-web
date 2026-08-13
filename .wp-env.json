@@ -1,4 +1,6 @@
 {
+  "core": "https://wordpress.org/wordpress-7.0.4.zip",
+  "testsEnvironment": false,
   "themes": ["./theme/artpsy"],
   "config": {
     "WP_DEBUG": true,
