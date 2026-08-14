@@ -37,18 +37,3 @@ add_action(
 		);
 	}
 );
-
-/**
- * 에디터 캔버스에도 같은 시트를 건다. 캔버스가 프런트와 다르게 보이면 편집자가 잘못된
- * 미리보기를 보고 카피를 다듬는다 — 매핑 §4.1 이 theme.json 의 styles.css 를 고른 이유와
- * 같은 것이고, 이 시트에도 그대로 적용된다.
- *
- * 프런트 전용 규칙(Lenis 연동·.js [data-reveal])은 캔버스에 선택자가 없어서 매치되지
- * 않는다. 그래서 시트를 가르지 않고 통째로 건다.
- */
-add_action(
-	'after_setup_theme',
-	function () {
-		add_editor_style( 'style.css' );
-	}
-);

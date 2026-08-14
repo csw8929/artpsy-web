@@ -36,8 +36,11 @@ describe("시트가 실릴 배선이 있다", () => {
     expect(functionsPhp).toMatch(/wp_enqueue_style\(\s*[\s\S]*get_stylesheet_uri\(\)/);
   });
 
-  it("에디터 캔버스에도 건다 — 미리보기가 프런트와 갈리면 안 된다", () => {
-    expect(functionsPhp).toMatch(/add_editor_style\(\s*'style\.css'\s*\)/);
+  it("에디터에는 걸지 않는다 — 빠뜨린 것이 아니라 일부러 안 거는 것이다", () => {
+    // .js [data-reveal] { opacity: 0 } 이 캔버스에 들어가면 에디터에서 글이 사라진다.
+    // 가르는 기준은 "편집자가 에디터에서 봐야 하는가"이고, 이 시트의 셋은 전부 아니다.
+    // PR-5 의 .link·.grid 는 반대라 그쪽에서 경로가 갈린다 (MyPrivate#8).
+    expect(functionsPhp).not.toMatch(/add_editor_style/);
   });
 });
 
