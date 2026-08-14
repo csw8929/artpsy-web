@@ -236,6 +236,8 @@ describe("(e) custom 변수 이름 유도", () => {
   it("지금 들어 있는 custom 키가 기대한 변수명으로 유도된다", () => {
     expect(customVarNames(settings.custom)).toEqual([
       "--wp--custom--letter-spacing--display",
+      "--wp--custom--letter-spacing--heading",
+      "--wp--custom--line-height--heading",
       "--wp--custom--line-height--normal",
       "--wp--custom--line-height--tight",
     ]);
