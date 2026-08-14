@@ -53,3 +53,39 @@ add_action(
 		add_editor_style( 'style.css' );
 	}
 );
+
+/**
+ * reveal 대상에 data-reveal 을 붙인다. 마크업에 직접 쓰지 않는 이유는 코어 블록이 임의
+ * data-* 를 저장 대상으로 두지 않아서다 — core/heading 의 supports 는 anchor 까지이고,
+ * 저장된 HTML 에 없는 속성이 있으면 블록 검증이 깨진다.
+ *
+ * 대상은 섹션 고정 덩어리의 제목(h2)과 리드 문단이다 (연출 결정, ARTPSY-74 §3).
+ * 히어로 h1 은 뺀다 — LCP 후보라 첫 화면에서 숨기면 안 된다.
+ * 반복 항목(카드·저널)도 뺀다 — 편집자가 추가한 카드에는 이 속성이 없어서 손으로 박아 둔
+ * 것만 움직이고 새 것은 안 움직인다. 일부만 움직이는 것보다 아무것도 안 움직이는 편이 낫다.
+ * 반복 항목의 reveal 은 패턴이 들고 있어야 하고 그건 아직 없다.
+ */
+add_filter(
+	'render_block',
+	function ( $content, $block ) {
+		$name  = $block['blockName'] ?? '';
+		$attrs = $block['attrs'] ?? array();
+
+		$is_section_heading = 'core/heading' === $name && 2 === ( $attrs['level'] ?? 2 );
+		$is_lead            = 'core/paragraph' === $name
+			&& in_array( 'lead', preg_split( '/\s+/', $attrs['className'] ?? '', -1, PREG_SPLIT_NO_EMPTY ), true );
+
+		if ( ! $is_section_heading && ! $is_lead ) {
+			return $content;
+		}
+
+		// 첫 여는 태그에만 붙인다. 이미 있으면 두 번 붙이지 않는다.
+		if ( false !== strpos( $content, 'data-reveal' ) ) {
+			return $content;
+		}
+
+		return preg_replace( '/<(h2|p)\b/', '<$1 data-reveal', $content, 1 );
+	},
+	10,
+	2
+);
