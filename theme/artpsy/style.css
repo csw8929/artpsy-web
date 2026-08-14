@@ -179,6 +179,16 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
 .hero .hero__media-block,
 .hero picture { display: contents; }
 
+/* WP 의 flow 레이아웃이 첫 자식이 아닌 형제에 margin-block-start 를 얹는다. .grid 와 같은
+   기전이고 같은 형태로 끈다.
+   figure 가 display: contents 인데도 붙는다 — 박스 트리에서 빠지는 것이지 DOM 에서 빠지는
+   것이 아니라 :not(:first-child) 가 여전히 맞는다.
+   히어로는 align-content: center 라 그 마진이 콘텐츠를 절반만큼(12px) 아래로 민다.
+
+   자식에만 건다. 고정 덩어리 안의 eyebrow-h1-메타 간격은 그 마진에 기대고 있어서
+   전역으로 끄면 거기가 무너진다. */
+.hero > * { margin-block: 0; }
+
 .hero__media {
   position: absolute;
   /* main.js 의 yPercent: 12 와 묶여 있다. -10% 는 미디어가 들어갈 여유이고, 120% 높이의
