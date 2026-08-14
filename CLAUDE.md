@@ -23,6 +23,17 @@
 ScrollTrigger. 이 프로젝트에서 가장 위험한 것은 CMS 배선이 아니라 **하이엔드 인터랙션과
 성능**이라, 그것부터 실제로 돌려서 검증했다. 이슈 4건 전부 종결.
 
+종료 지점은 **`phase-1` 태그**로 고정돼 있다. Phase 2와 대볼 기준선은 전부 **허브
+`tools/perf-harness/baselines/`** 에 있다 (repo 아닌 이유: 그걸 읽는 하네스가 거기 있고,
+전면 캡처는 PR diff에서 눈으로 볼 수 없어 스크립트 대조가 유일한 사용법이다).
+
+- 수치 29건 — 라운드별 성능 원자료
+- `dist-manifest-phase-1.json` — 파일별 크기·sha256, 재빌드 동일성 대조용
+- `visual-phase-1/` — 전면 캡처 4폭(390·768·1440·1600), `prefers-reduced-motion`
+
+**1440만 보고 판정하지 않는다.** 그 폭에서는 `wideSize`와 콘텐츠 폭이 우연히 겹쳐 갈리지
+않는다. 근거와 사용법은 하네스 README §5.5.
+
 **Phase 2 — WordPress 블록 테마 이식. 착수.** Docker 28.1.1 + Compose v2.35.1이 이 머신에
 섰다(2026-08-13). 구동은 `@wordpress/env`로 하고 WordPress는 컨테이너의 PHP 8.x를 쓴다 —
 호스트 PHP 7.4는 대비책이고 `mbstring`·`zip`이 빠져 있다(20.04 universe/main 버전 핀 충돌).
