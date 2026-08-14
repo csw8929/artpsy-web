@@ -147,6 +147,12 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
   border-top: 1px solid var(--wp--custom--color--line);
 }
 
+/* styles.elements.h3 는 서체·크기·굵기까지다. 여백은 슬롯이 없다 — h2 와 같은 자리다.
+   blockGap 이 대신 메우지 못한다. 코어가 두 번째 자식에 주는 margin-block-start 는
+   :where(.wp-container-N > * + *) 라 특정도가 0 인데, 바로 아래 .card p 의 margin: 0 이
+   (0,1,1) 로 이긴다. 이 규칙이 없으면 카드 제목-본문 간격이 16px 이 아니라 0 이 된다. */
+.card h3 { margin: 0 0 var(--wp--preset--spacing--20); }
+
 .card p {
   color: var(--wp--preset--color--ink-soft);
   margin: 0;
