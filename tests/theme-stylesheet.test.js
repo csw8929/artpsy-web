@@ -151,6 +151,13 @@ describe("허용 블록 (편집경계 설계 §3.1)", () => {
     expect(functionsPhp).toMatch(/'core\/button'/);
   });
 
+  it("컨테이너도 같이 뺀다 — 하나만 빼면 죽은 껍데기가 남는다", () => {
+    // core/buttons 만 남으면 삽입은 되는데 자식을 못 받는다 (tester 실측:
+    // canInsertButtonsAtRoot true · canInsertButtonIntoButtons false).
+    // 열린 것처럼 보이는 잠금이라 잠금의 부재보다 나쁘다.
+    expect(functionsPhp).toMatch(/'core\/buttons'/);
+  });
+
   it("거부 목록이다 — 허용 목록을 손으로 적지 않는다", () => {
     // 지금 못 박으면 다음 템플릿마다 풀어야 하고, 코어가 블록을 늘려도 안 따라온다.
     // 등록된 것에서 빼는 형태인지를 본다.
