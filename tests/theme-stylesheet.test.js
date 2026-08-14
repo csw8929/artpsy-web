@@ -22,6 +22,25 @@ describe("테마 헤더", () => {
   });
 });
 
+describe("시트가 실릴 배선이 있다", () => {
+  // 파일에 규칙이 있는 것과 규칙이 적용되는 것은 다르다. 아래 단언들은 전부 파일의 텍스트를
+  // 보므로 그 차이를 못 잡는다 — 처음에 이 배선이 없어서 셋 다 통과하면서 하나도 발동하지
+  // 않았다 (ARTPSY-68R). 정적으로 닫을 수 있는 것은 "거는 코드가 있는가"까지다.
+  const functionsPhp = readFileSync(
+    new URL("../theme/artpsy/functions.php", import.meta.url),
+    "utf8",
+  );
+
+  it("프런트에 enqueue 한다 — 블록 테마라도 자동으로 걸리지 않는다", () => {
+    expect(functionsPhp).toMatch(/wp_enqueue_scripts/);
+    expect(functionsPhp).toMatch(/wp_enqueue_style\(\s*[\s\S]*get_stylesheet_uri\(\)/);
+  });
+
+  it("에디터 캔버스에도 건다 — 미리보기가 프런트와 갈리면 안 된다", () => {
+    expect(functionsPhp).toMatch(/add_editor_style\(\s*'style\.css'\s*\)/);
+  });
+});
+
 describe("Lenis 연동 (매핑 §4.2)", () => {
   // 선택자는 Lenis 가 붙이는 것이라 우리가 이름을 정하지 않는다. 바뀌면 연동이 끊긴다.
   it("html.lenis 의 height 가 auto 다", () => {
