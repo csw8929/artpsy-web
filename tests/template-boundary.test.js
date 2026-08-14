@@ -103,6 +103,15 @@ describe("폭 사슬 (매핑 §3.6-A) — 조상이 좁으면 alignwide 가 무�
     expect(sections.flatMap(wrapsOf)).toHaveLength(7);
   });
 
+  it("히어로 메타가 고정 덩어리 안에 있고 순서가 잠겨 있다", () => {
+    // contentOnly 는 순서 변경을 막지 않는다 (설계 §2.3). h1·eyebrow 와 같이 lock 이 필요하다.
+    const meta = collect((node) => hasClass(node, "hero__meta"));
+    expect(meta).toHaveLength(1);
+    expect(meta[0].attrs.lock).toEqual({ move: true });
+    expect(meta[0].children).toHaveLength(3);
+    expect(meta[0].children.filter((node) => node.attrs.lock?.move !== true)).toEqual([]);
+  });
+
   it("히어로 미디어는 full 이다 — 여백을 빠져나가야 배경이 된다", () => {
     const media = collect((node) => hasClass(node, "hero__media-block"));
     expect(media).toHaveLength(1);
