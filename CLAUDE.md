@@ -34,18 +34,32 @@ ScrollTrigger. 이 프로젝트에서 가장 위험한 것은 CMS 배선이 아�
 **1440만 보고 판정하지 않는다.** 그 폭에서는 `wideSize`와 콘텐츠 폭이 우연히 겹쳐 갈리지
 않는다. 근거와 사용법은 하네스 README §5.5.
 
-**Phase 2 — WordPress 블록 테마 이식. 착수.** Docker 28.1.1 + Compose v2.35.1이 이 머신에
-섰다(2026-08-13). 구동은 `@wordpress/env`로 하고 WordPress는 컨테이너의 PHP 8.x를 쓴다 —
-호스트 PHP 7.4는 대비책이고 `mbstring`·`zip`이 빠져 있다(20.04 universe/main 버전 핀 충돌).
-
-Phase 1의 토큰(`src/styles/tokens.css`)을 `theme.json`으로 매핑하는 것이 이식의 축이다.
-매핑 설계는 허브 `md/architect/20260811_artpsy-theme-json-매핑.md`가 정본이고,
-**그 §9의 미검증 가정 6건을 최소 테마로 먼저 확인한 뒤** 매핑표를 옮긴다 — 표를 다 옮긴
-뒤에 전제가 틀린 것을 발견하면 되돌리는 비용이 옮기는 비용과 같다.
+**Phase 2 — WordPress 블록 테마 이식. 종료됨** (2026-08-14, `d4b217a`, 태그 `phase-2`).
+Phase 1의 토큰(`src/styles/tokens.css`)을 `theme.json`으로 매핑하는 것이 이식의 축이었다.
+커밋 35 · 머지된 PR 20 · 테스트 0 → 315. 회고는 허브
+`md/project/artpsy/analysis/20260814_phase2-회고.md`가 정본이다.
 
 - 테마: `theme/artpsy/` · 구동 설정: `.wp-env.json` (둘 다 Phase 1 트리와 공존한다)
+- 구동은 `@wordpress/env`로 하고 WordPress는 컨테이너의 PHP 8.x를 쓴다 — 호스트 PHP 7.4는
+  대비책이고 `mbstring`·`zip`이 빠져 있다(20.04 universe/main 버전 핀 충돌).
 - `docker` 그룹이 로그인 세션에 아직 안 붙었으면 `sg docker -c "..."` 로 감싼다.
   영구 해결은 완전 로그아웃 후 재로그인이다.
+
+**이식은 닫혔고 성능은 안 닫혔다.** `d4b217a`가 `perf-budget.json`의 `LCP max=2500`을
+넘긴다 — desktop 6,480 · mobile 5,084. 로드는 오히려 빨라졌는데(8,680 → 6,425)
+**LCP 후보가 `h1.display`에서 `img.hero__media`로 바뀌었고 그 원인을 모른다.**
+`.wp-env.json`이 작업 트리를 컨테이너에 **bind mount** 한다. **체크아웃이 곧 브라우저가
+받는 CSS·PHP다** — 성능 측정 중에 커밋하면 회차별 입력이 갈린다(실제로 한 라운드를 버렸다).
+측정 중에는 커밋하지 않고, 브랜치 작업은 `git worktree`로 딴 경로에서 한다.
+
+기준선은 허브 `tools/perf-harness/baselines/*-phase-2-d4b217a.json` 4건.
+**전송량을 Phase 1과 그냥 비교하면 안 된다** — 저널 썸네일이 24장 대 2장이라
+"줄었다"가 아니라 "22장이 없다"다. 내용 등가로 맞추면 예산을 넘긴다.
+
+**Phase 3 — 미착수.** 다음 씨앗은 manager가 쥐고 있고 1번이 히어로 LCP다. 그 첫 홉은
+자산 최적화가 아니라 **"왜 히어로가 LCP 후보가 됐나" 스파이크**다 — 원인을 모르는 채로
+이미지를 줄이면 LCP가 내려갈지 다른 후보로 넘어갈지 예측이 안 서고, 예측을 못 세우면
+그 다음은 측정이 아니라 시행착오다.
 
 ## 지킬 것
 
