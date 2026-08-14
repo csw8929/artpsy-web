@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@wordpress/env": "^11.13.0",
+    "jsdom": "^30.0.1",
     "vite": "^8.2.1",
     "vitest": "^4.1.10"
   }
