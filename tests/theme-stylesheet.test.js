@@ -303,6 +303,14 @@ describe("이미지 (설계 §1·§2)", () => {
     it("썸네일이 코어 image 블록이다", () => {
       expect(template).toMatch(/wp:image[^>]*journal__thumb-block/);
     });
+
+    it("시드에는 srcset 이 없다 — 첨부가 아니면 코어가 못 만든다", () => {
+      // "코어에 맡긴다"가 성립하는 것은 편집자가 올린 첨부에 한해서다. 테마 파일은
+      // 첨부가 아니라 srcset·sizes 가 아예 안 생긴다. 안 쓰이는 폭 변형을 같이 넣으면
+      // "반응형이 된다"는 착각만 남으므로 넣지 않는다.
+      expect(template).not.toMatch(/\bsrcset=/);
+      expect(existsSync(new URL("../theme/artpsy/assets/img/journal/journal-01-600.webp", import.meta.url))).toBe(false);
+    });
   });
 
   describe("시드 이미지", () => {
