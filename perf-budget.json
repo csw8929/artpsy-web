@@ -1,0 +1,22 @@
+{
+  "profile": {
+    "name": "Slow 4G + CPU 4x",
+    "source": "tools/perf-harness/cdp.mjs — SLOW_4G",
+    "latencyMs": 562.5,
+    "downloadBytesPerSec": 188743.68000000002,
+    "uploadBytesPerSec": 86400,
+    "cpuThrottlingRate": 4,
+    "note": "cdp.mjs 의 식을 그대로 계산한 값이다. latency = 150 * 3.75, download = (1.6*1024*1024)/8*0.9, upload = (750*1024)/8*0.9. download 의 끝자리는 오타가 아니라 부동소수점 결과 그대로다 — 188743.68 로 반올림해 적으면 cdp.mjs 의 상수와 === 로 같지 않다."
+  },
+  "aggregate": { "method": "p75", "minRuns": 5 },
+  "budgets": {
+    "LCP": { "max": 2500, "unit": "ms" },
+    "INP": { "max": 200, "unit": "ms" },
+    "CLS": { "max": 0.1, "unit": "" },
+    "loadMs": { "max": 10000, "unit": "ms" },
+    "initial.total": { "max": 1572864, "unit": "bytes", "note": "1.5 MiB (이진). CLAUDE.md 의 '1.5MB' 가 십진인지 이진인지 적혀 있지 않아 이진으로 잡았다. Phase 1 판정은 경계에 닿은 적이 없어 기록이 이 선택을 가르지 못한다." },
+    "full.total": { "max": 4194304, "unit": "bytes", "note": "4.0 MiB (이진). 위와 같다." }
+  },
+  "required": ["LCP", "INP", "CLS", "loadMs", "initial.total", "full.total"],
+  "baseline": { "tag": "phase-1", "dir": "tools/perf-harness/baselines/" }
+}
