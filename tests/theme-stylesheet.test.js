@@ -187,9 +187,6 @@ describe("미이식분 이식 (매핑 §4.2.0)", () => {
     [".card", /border-top:\s*1px solid var\(--wp--custom--color--line\)/, "카드 경계"],
     [".card h3", /margin:\s*0 0 var\(--wp--preset--spacing--20\)/, "제목 아래 여백 — blockGap 이 .card p 의 margin: 0 에 진다"],
     [".card p", /color:\s*var\(--wp--preset--color--ink-soft\)/, "카드 본문 색"],
-    // 끝의 세미콜론까지 본다. /margin:\s*0/ 만으로는 `margin: 0 0 24px` 도 통과하는데
-    // 그건 마진을 끈 것이 아니라 다시 켠 것이다.
-    [".card p", /margin:\s*0;/, "코어 blockGap 24px 을 누른다 — 지우면 간격이 16 이 아니라 24 다"],
     [".journal", /gap:\s*var\(--wp--preset--spacing--50\) var\(--wp--preset--spacing--40\)/, "저널 간격"],
     [".journal__date", /color:\s*var\(--wp--preset--color--ink-faint\)/, "날짜 색"],
     [".journal__item h3", /line-height:\s*var\(--wp--custom--line-height--heading\)/, "저널 제목 행간"],
@@ -203,7 +200,7 @@ describe("미이식분 이식 (매핑 §4.2.0)", () => {
   }
 
   it("규칙 목록이 조용히 줄어들지 않았다", () => {
-    expect(RULES).toHaveLength(18);
+    expect(RULES).toHaveLength(17);
   });
 
   // PR-5 가 .link 와 .grid 를 넣었는데 프로퍼티 단언이 하나도 없었다. 변이를 걸다가
@@ -368,22 +365,50 @@ describe("이미지 (설계 §1·§2)", () => {
 });
 
 describe("flow 마진 (매핑 §4.2.4)", () => {
-  // WP flow 레이아웃이 첫 자식이 아닌 형제에 margin-block-start 를 얹는다.
-  // .grid 는 gap 위에 세로 간격이 겹쳤고, .hero 는 align-content: center 라 콘텐츠가
-  // 절반만큼 밀렸다 — 같은 기전이라 같은 형태로 끈다.
-  const TARGETS = [".grid > *", ".hero > *"];
+  // 이 가족의 정의는 **문법이 아니라 기전**이다 — WP flow 가 얹는 세로 마진을 되돌리는 규칙.
+  //
+  // 처음에는 `margin-block: 0` 이라는 문자열로 식구를 셌다. 그래서 같은 일을 하면서 형태가
+  // `margin: 0` 인 .card p 가 집합 밖에 있었고, 그 줄을 지우면 카드 간격이 16 에서 24 로
+  // 바뀌는데 스위트는 통과했다 (tester 실측, ARTPSY-96R §6).
+  //
+  // 이번 라운드에 같은 모양이 네 번째다. 열거의 기준을 표면 형태로 잡으면 그 형태를 안 가진
+  // 식구가 조용히 빠진다 — 가르는 쪽, 표의 행, 표의 수, 그리고 이번엔 정규식.
+  const MECHANISM = [
+    [".grid > *", /margin-block:\s*0/, "gap 위에 세로 간격이 한 번 더 붙는다"],
+    [".hero > *", /margin-block:\s*0/, "align-content: center 라 24px 이 콘텐츠를 12px 민다"],
+    // 세미콜론까지 본다. /margin:\s*0/ 만으로는 `margin: 0 0 24px` 도 통과하는데 그건
+    // 마진을 끈 것이 아니라 다시 켠 것이고 간격이 또 24 가 된다.
+    [".card p", /margin:\s*0;/, "코어 blockGap 24px 이 이 줄에 진다 — 지우면 카드 간격이 16 이 아니라 24 다"],
+  ];
 
-  for (const selector of TARGETS) {
-    it(`${selector} 의 세로 마진을 끈다`, () => {
-      expect(bodyOf(selector)).toMatch(/margin-block:\s*0/);
+  for (const [selector, pattern, why] of MECHANISM) {
+    it(`${selector} — ${why}`, () => {
+      expect(
+        bodyOf(selector),
+        `${selector} 는 WP flow 가 얹는 세로 마진을 되돌리는 자리다. ${why}. ` +
+          `코어가 같은 일을 하는 것처럼 보여서 군더더기로 읽히기 쉬운 줄이다.`,
+      ).toMatch(pattern);
     });
   }
 
-  it("두 곳뿐이다 — 전역으로 끄지 않는다", () => {
-    // 고정 덩어리 안의 eyebrow-h1-메타 간격이 그 마진에 기대고 있다.
+  it("가족이 셋이다", () => {
+    expect(MECHANISM).toHaveLength(3);
+  });
+
+  // 위는 기전으로 닫고 아래는 문법으로 닫는다. 둘은 다른 것을 지킨다.
+  //
+  // 아래가 지키는 것은 `margin-block: 0` 을 전역으로 확장하지 않는 것이다 — 고정 덩어리
+  // 안의 eyebrow-h1-메타 간격이 그 마진에 기대고 있어서 전역으로 끄면 거기가 무너진다.
+  //
+  // .card p 는 `margin: 0` 이라 여기 안 걸린다. **그것이 의도다.** 이 단언이 세는 것은
+  // 가족의 수가 아니라 `margin-block: 0` 을 쓴 자리의 수다. 형태를 맞추려고 .card p 를
+  // margin-block 으로 고쳐 쓰지 않는다 — base.css:151 의 1:1 이식이 우선이다.
+  const MARGIN_BLOCK_TARGETS = [".grid > *", ".hero > *"];
+
+  it("margin-block: 0 은 두 곳뿐이다 — 전역으로 끄지 않는다", () => {
     const hits = [...withoutComments.matchAll(/([^{}]+)\{[^}]*margin-block:\s*0[^}]*\}/g)]
       .map((m) => m[1].trim());
-    expect(hits.sort()).toEqual([...TARGETS].sort());
+    expect(hits.sort()).toEqual([...MARGIN_BLOCK_TARGETS].sort());
   });
 });
 

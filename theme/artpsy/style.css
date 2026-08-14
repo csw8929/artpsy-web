@@ -138,7 +138,9 @@ video {
 .lead { color: var(--wp--preset--color--ink-soft); }
 
 /* -- 제목 아래 여백 ----------------------------------------------------
-   styles.elements.h2 는 서체·크기·행간·자간·굵기까지다. 여백은 슬롯이 없다. */
+   styles.elements.h2 에 margin 슬롯이 없다고 적었었는데 틀렸다. 슬롯은 있다 — 아래 .card h3
+   주석과 같은 근거다. 다만 base.css:57 의 h2 는 맨 h2 라 elements.h2 로 옮겨도 범위가 같다.
+   즉 여기 남아 있을 이유가 .card h3 만큼 세지 않다. 옮길지는 정해지지 않았고 그때까지 여기 둔다. */
 h2 { margin: 0 0 var(--wp--preset--spacing--30); }
 
 /* -- 카드 -------------------------------------------------------------- */
@@ -147,7 +149,13 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
   border-top: 1px solid var(--wp--custom--color--line);
 }
 
-/* styles.elements.h3 는 서체·크기·굵기까지다. 여백은 슬롯이 없다 — h2 와 같은 자리다.
+/* styles.elements.h3 에 margin 슬롯은 **있다** (WP_Theme_JSON::VALID_STYLES 의 spacing,
+   h3 { margin-bottom } 으로 컴파일된다 — tester 가 코어에 직접 시켜서 확인했다).
+   막는 것은 슬롯이 아니라 **적용 범위**다. elements.h3 는 선택자가 맨 h3 (0,0,1) 로 나와
+   사이트의 모든 h3 에 걸린다. Phase 1 이 .card h3 로 좁혀 둔 것을 그대로 옮기는 것이 1:1 이다.
+   지금은 .journal__item h3 (0,1,1) 가 이겨서 무사하지만, 카드도 저널도 아닌 h3 가 생기면
+   청하지 않은 16px 을 받는다.
+
    blockGap 이 대신 메우지 못한다. 코어가 두 번째 자식에 주는 margin-block-start 는
    :where(.wp-container-N > * + *) 라 특정도가 0 인데, 바로 아래 .card p 의 margin: 0 이
    (0,1,1) 로 이긴다. 이 규칙이 없으면 카드 제목-본문 간격이 16px 이 아니라 0 이 된다. */
