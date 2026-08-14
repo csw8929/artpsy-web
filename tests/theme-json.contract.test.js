@@ -50,10 +50,19 @@ describe("(a) 프리셋 개수와 slug 집합", () => {
   });
 });
 
-describe("(b) fontSizes 순서 — 계산된 최소값 오름차순", () => {
-  // WP 가 배열 순서에서 약칭(S·M·L…)을 만든다. 순서가 뒤집히면 편집자가 `S` 를 눌러
-  // 가장 큰 글자를 얻는다 (ARTPSY-41). 깨지는 것은 순서 규칙이지 특정 배열이 아니다.
+describe("(b) 크기 프리셋 순서", () => {
+  // 배열 순서가 곧 편집자 화면의 순서다. fontSizes 는 WP 가 약칭(S·M·L…)까지 붙여서
+  // 뒤집히면 `S` 를 눌러 가장 큰 글자가 나왔고(ARTPSY-41), spacingSizes 는 약칭이 없을
+  // 뿐 표시 순서가 배열 순서인 것이 같다(ARTPSY-42).
+  //
+  // 규칙은 배열 이름이 아니라 값의 성질로 가른다 — 이름으로 갈랐다가 spacingSizes 가
+  // 통째로 비어 있었다.
+  //   ① 리터럴 값: 계산된 최소값 오름차순
+  //   ② 합성 값(첫 인자가 다른 프리셋 참조): 배열 끝에 모인다. 서로의 순서는 묻지 않는다
+  // 어느 쪽인지는 값 자신이 말하므로 슬러그를 적지 않는다. 다음 합성값이 생겨도 그대로 된다.
   const REM_PX = 16;
+
+  const isComposite = (size) => /var\(\s*--wp--preset--/.test(String(size));
 
   /** clamp(a, b, c) 면 a 를, 단일값이면 그 값을 rem 수치로 정규화한다. */
   function minRem(size) {
@@ -74,15 +83,37 @@ describe("(b) fontSizes 순서 — 계산된 최소값 오름차순", () => {
     expect(minRem("16px")).toBe(1);
   });
 
-  it("작은 것부터 오름차순이다", () => {
-    const mins = (at(settings, "typography.fontSizes") ?? []).map((preset) => minRem(preset.size));
-    expect(mins).toEqual([...mins].sort((a, b) => a - b));
+  it("합성값 판별이 프리셋 참조만 잡는다", () => {
+    expect(isComposite("clamp(var(--wp--preset--spacing--50), 12vh, var(--wp--preset--spacing--70))")).toBe(true);
+    expect(isComposite("clamp(2.25rem, 5.2vw, 4.75rem)")).toBe(false);
+    expect(isComposite("1rem")).toBe(false);
   });
 
-  it("같은 크기가 둘 이상 없다 — 약칭이 구분되지 않는다", () => {
-    const mins = (at(settings, "typography.fontSizes") ?? []).map((preset) => minRem(preset.size));
-    expect(new Set(mins).size).toBe(mins.length);
-  });
+  for (const path of ["typography.fontSizes", "spacing.spacingSizes"]) {
+    describe(path, () => {
+      const presets = at(settings, path) ?? [];
+      const literals = presets.filter((preset) => !isComposite(preset.size));
+
+      it("리터럴 프리셋이 작은 것부터 오름차순이다", () => {
+        const mins = literals.map((preset) => minRem(preset.size));
+        expect(mins).toEqual([...mins].sort((a, b) => a - b));
+      });
+
+      it("같은 크기가 둘 이상 없다 — 고를 때 구분되지 않는다", () => {
+        const mins = literals.map((preset) => minRem(preset.size));
+        expect(new Set(mins).size).toBe(mins.length);
+      });
+
+      it("합성값이 배열 끝에 모인다", () => {
+        // 합성값이 램프 한가운데 끼면 컨트롤 가운데에 "섹션"이 뜬다. 제외만 하면
+        // 그 배치가 통과해버리므로, 위치를 따로 단언한다.
+        const flags = presets.map((preset) => isComposite(preset.size));
+        const first = flags.indexOf(true);
+        const tail = first === -1 ? [] : flags.slice(first);
+        expect(tail.every(Boolean)).toBe(true);
+      });
+    });
+  }
 });
 
 describe("(c) 잠금 목록 — 매핑 §5.2 전수 대조", () => {
