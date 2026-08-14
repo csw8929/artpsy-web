@@ -123,3 +123,37 @@ add_filter(
 	10,
 	2
 );
+
+/**
+ * 테마 런타임. style.css 와 같은 자리다 — 블록 테마라도 자동으로 걸리는 것이 없다.
+ *
+ * defer 로 건다. Phase 1 은 <script type="module"> 이었고 그건 기본이 defer 다.
+ * 파서를 막지 않는 것이 같아야 한다.
+ *
+ * 버전은 테마 버전이다. 번들 파일명에 해시를 안 넣었으므로 캐시는 이 쿼리가 깬다 —
+ * style.css 와 같은 방식이라 테마 버전 하나만 올리면 둘이 같이 깨진다.
+ */
+add_action(
+	'wp_enqueue_scripts',
+	function () {
+		$relative = 'assets/main.js';
+		$path     = get_theme_file_path( $relative );
+
+		// 번들이 없으면 조용히 넘어가지 않는다. 정적 페이지로 내려앉는 것이 맞지만,
+		// 왜 그런지는 남아야 한다 — .js 클래스가 안 붙어 콘텐츠는 그대로 보인다.
+		if ( ! file_exists( $path ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				trigger_error( 'artpsy: ' . $relative . ' 가 없다. npm run build:theme 을 돌려야 한다.', E_USER_WARNING );
+			}
+			return;
+		}
+
+		wp_enqueue_script(
+			'artpsy',
+			get_theme_file_uri( $relative ),
+			array(),
+			wp_get_theme()->get( 'Version' ),
+			array( 'strategy' => 'defer' )
+		);
+	}
+);

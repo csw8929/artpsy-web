@@ -37,3 +37,18 @@ jobs:
       - run: npm run build
 
       - run: npm test
+
+      # 테마 번들은 커밋된 산출물이다. 소스만 고치고 다시 빌드하지 않으면 둘이 갈라지는데
+      # 화면은 멀쩡히 뜬다 — 옛 번들이 실릴 뿐이다. 여기서 다시 빌드해 diff 로 잡는다.
+      - run: npm run build:theme
+      - name: theme bundle is up to date
+        # git diff 가 아니라 status 로 본다 — diff 는 추적되지 않는 새 파일을 못 본다.
+        # 산출물이 하나 늘어나는 형태가 그 구멍으로 새면 커밋 안 된 자산이 배포에서 빠진다.
+        run: |
+          dirty=$(git status --porcelain -- theme/artpsy/assets)
+          if [ -n "$dirty" ]; then
+            echo "테마 번들이 소스와 다르다. npm run build:theme 을 돌리고 커밋할 것."
+            echo "$dirty"
+            git diff -- theme/artpsy/assets | head -40
+            exit 1
+          fi
