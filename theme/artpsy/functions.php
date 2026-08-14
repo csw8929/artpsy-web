@@ -37,3 +37,19 @@ add_action(
 		);
 	}
 );
+
+/**
+ * 에디터 캔버스에도 같은 시트를 건다. .link 와 .grid 는 편집자가 보면서 고치는 것이라
+ * 캔버스와 프런트가 갈리면 잘못된 미리보기를 보고 카피를 다듬게 된다 — 매핑 §4.1 이
+ * theme.json 의 styles.css 를 고른 이유와 같다.
+ *
+ * 시트를 가르지 않고 통째로 건다. 프런트 전용 규칙은 캔버스에서 매칭할 것이 없다 —
+ * .js 를 붙이는 것은 프런트 번들이라 캔버스에 안 실리고(실측 matchesRule 0), Lenis
+ * 선택자도 붙지 않는다. 파일을 둘로 가르는 값이 그 무해함보다 크다.
+ */
+add_action(
+	'after_setup_theme',
+	function () {
+		add_editor_style( 'style.css' );
+	}
+);

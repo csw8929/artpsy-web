@@ -36,15 +36,14 @@ describe("시트가 실릴 배선이 있다", () => {
     expect(functionsPhp).toMatch(/wp_enqueue_style\(\s*[\s\S]*get_stylesheet_uri\(\)/);
   });
 
-  it("에디터에는 걸지 않는다 — 빠뜨린 것이 아니라 일부러 안 거는 것이다", () => {
-    // 가르는 기준은 "편집자가 에디터에서 봐야 하는가"이고, 이 시트의 셋은 전부 아니다.
-    // Lenis 선택자는 캔버스에서 무의미하고, .js [data-reveal] 은 매칭할 것이 없으며
-    // (.js 를 붙이는 것은 프런트 번들이라 캔버스에 안 실린다 — tester 실측 matchesRule 0),
-    // reduced-motion 은 발동하지만 캔버스에서 의도한 바가 아니다.
+  it("에디터 캔버스에도 건다 — .link·.grid 는 편집자가 보면서 고친다", () => {
+    // PR-4 에서는 안 걸었다. 그 시트의 셋(Lenis·reveal 초기 상태·reduced-motion)은
+    // 편집자가 에디터에서 볼 것이 아니었기 때문이다. .link 와 .grid 가 들어오면서
+    // 기준이 뒤집혔다 — 캔버스와 프런트가 갈리면 잘못된 미리보기를 보고 카피를 다듬는다.
     //
-    // "캔버스가 깨지기 때문"이 아니다. 그 이유를 쓴 적이 있는데 실측으로 틀렸다.
-    // PR-5 의 .link·.grid 는 편집자가 보면서 고쳐야 하므로 반대이고, 그쪽에서 경로가 갈린다.
-    expect(functionsPhp).not.toMatch(/add_editor_style/);
+    // 시트를 가르지 않는다. 프런트 전용 규칙은 캔버스에서 매칭할 것이 없다
+    // (tester 실측: canvasHasJs false · matchesRule 0). 가르는 값이 그 무해함보다 크다.
+    expect(functionsPhp).toMatch(/add_editor_style\(\s*'style\.css'\s*\)/);
   });
 });
 
