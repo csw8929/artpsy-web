@@ -136,3 +136,30 @@ describe("토큰 참조", () => {
     expect(stale).toEqual([]);
   });
 });
+
+describe("허용 블록 (편집경계 설계 §3.1)", () => {
+  const functionsPhp = readFileSync(
+    new URL("../theme/artpsy/functions.php", import.meta.url),
+    "utf8",
+  );
+
+  it("allowed_block_types_all 필터가 있다", () => {
+    expect(functionsPhp).toMatch(/add_filter\(\s*\n?\s*'allowed_block_types_all'/);
+  });
+
+  it("core/button 을 뺀다 — 이 디자인에 버튼 컴포넌트가 없다", () => {
+    expect(functionsPhp).toMatch(/'core\/button'/);
+  });
+
+  it("거부 목록이다 — 허용 목록을 손으로 적지 않는다", () => {
+    // 지금 못 박으면 다음 템플릿마다 풀어야 하고, 코어가 블록을 늘려도 안 따라온다.
+    // 등록된 것에서 빼는 형태인지를 본다.
+    expect(functionsPhp).toMatch(/WP_Block_Type_Registry::get_instance\(\)->get_all_registered\(\)/);
+    expect(functionsPhp).toMatch(/array_diff\(/);
+  });
+
+  it("$context 로 분기하지 않는다 — 분기할 대상이 아직 없다", () => {
+    const filter = functionsPhp.slice(functionsPhp.indexOf("'allowed_block_types_all'"));
+    expect(filter).not.toMatch(/\$context\s*(===|==|->|\[)/);
+  });
+});
