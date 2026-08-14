@@ -62,7 +62,10 @@ describe("(b) 크기 프리셋 순서", () => {
   // 어느 쪽인지는 값 자신이 말하므로 슬러그를 적지 않는다. 다음 합성값이 생겨도 그대로 된다.
   const REM_PX = 16;
 
-  const isComposite = (size) => /var\(\s*--wp--preset--/.test(String(size));
+  // 첫 인자만 본다. 값 어디든 프리셋 참조가 있으면 잡도록 넓히면
+  // clamp(1rem, 2vw, var(--wp--preset--spacing--60)) 처럼 최소값이 확정된 것까지 끝으로
+  // 밀려 컨트롤 끝에 1rem 이 뜬다 — 막으려던 증상과 같은 모양이다.
+  const isComposite = (size) => /^clamp\(\s*var\(\s*--wp--preset--/.test(String(size));
 
   /** clamp(a, b, c) 면 a 를, 단일값이면 그 값을 rem 수치로 정규화한다. */
   function minRem(size) {
@@ -83,10 +86,16 @@ describe("(b) 크기 프리셋 순서", () => {
     expect(minRem("16px")).toBe(1);
   });
 
-  it("합성값 판별이 프리셋 참조만 잡는다", () => {
+  it("합성값 판별이 첫 인자만 본다", () => {
     expect(isComposite("clamp(var(--wp--preset--spacing--50), 12vh, var(--wp--preset--spacing--70))")).toBe(true);
     expect(isComposite("clamp(2.25rem, 5.2vw, 4.75rem)")).toBe(false);
     expect(isComposite("1rem")).toBe(false);
+    // 최소값이 확정되므로 리터럴이다. 상한이 프리셋을 참조하는 것은 순서와 무관하다.
+    expect(isComposite("clamp(1rem, 2vw, var(--wp--preset--spacing--60))")).toBe(false);
+    expect(minRem("clamp(1rem, 2vw, var(--wp--preset--spacing--60))")).toBe(1);
+    // 프리셋이 아닌 변수를 첫 인자로 쓰면 합성값이 아니고, minRem 이 조용히 넘기지 않는다.
+    expect(isComposite("clamp(var(--wp--custom--x), 2vw, 4rem)")).toBe(false);
+    expect(() => minRem("clamp(var(--wp--custom--x), 2vw, 4rem)")).toThrow();
   });
 
   for (const path of ["typography.fontSizes", "spacing.spacingSizes"]) {
