@@ -7,5 +7,47 @@ Requires PHP: 8.0
 Text Domain: artpsy
 */
 
-/* 블록 테마의 필수 파일이라 존재한다. 시각적인 값은 theme.json이 정본이므로
-   여기에 규칙을 넣지 않는다 — 여기 쓰는 순간 Phase 2 이식이 수작업이 된다. */
+/* 시각적인 값은 theme.json 이 정본이다. 여기에는 **theme.json 문법으로 표현할 수 없는
+   것만** 둔다 — 미디어쿼리, 라이브러리 연동 선택자, 조건부 규칙. 값을 여기 적기 시작하면
+   그만큼 Phase 2 이식이 수작업이 되고 두 벌이 갈라진다.
+
+   토큰 참조는 WP 변수명으로 옮긴다. 대응의 정본은 tests/token-map.js 다. */
+
+/* -- Lenis 연동 (매핑 §4.2) -------------------------------------------
+   Lenis 가 스크롤을 JS 에서 몰기 때문에 네이티브 스무스 스크롤이 켜져 있으면 둘이 싸운다.
+   선택자는 Lenis 라이브러리가 붙이는 것이라 우리가 정하지 않는다. */
+html.lenis,
+html.lenis body { height: auto; }
+
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* -- reveal 초기 상태 (매핑 §4.2) -------------------------------------
+   JS 가 실제로 애니메이션할 때만 숨긴다. 이 조건이 없으면 JS 실패가 백지 화면이 되고,
+   그건 애니메이션이 없는 것보다 나쁜 결과다.
+
+   JS 가 실리기 전에 깔려 있어야 한다 — 나중에 얹는 것이 아니다.
+   translateY 값은 연출 튜닝 상수라 토큰화하지 않는다 (매핑 §4.4). */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(1.25rem);
+}
+
+/* -- 모션 감소 (매핑 §4.2) ---------------------------------------------
+   theme.json 에 미디어쿼리 문법이 없어서 여기 말고 갈 곳이 없다.
+   심리상담 도메인이라 이 블록이 빠지면 안 된다 (프로젝트 CLAUDE.md).
+
+   reveal 을 보이는 상태로 되돌리는 것과 전역 전환 억제, 둘 다 필요하다 — 앞의 것이
+   없으면 콘텐츠가 숨은 채로 남고, 뒤의 것이 없으면 다른 전환이 계속 돈다. */
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
