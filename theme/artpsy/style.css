@@ -226,3 +226,18 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
   object-fit: cover;
   background: var(--wp--custom--color--paper-deep);
 }
+
+/* -- 히어로 메타 (매핑 §4.2.0) -----------------------------------------
+   text-transform 이 §5.2 로 잠겨 편집자가 못 고른다. .eyebrow 와 같은 자리로 CSS 만이 길이다.
+   gap 은 코어 flex 레이아웃이 blockGap 으로 내는 것을 덮는다 — Phase 1 값이 --s-4 다. */
+.hero__meta {
+  display: flex;
+  gap: var(--wp--preset--spacing--40);
+  margin-top: var(--wp--preset--spacing--50);
+  font-size: var(--wp--preset--font-size--meta);
+  letter-spacing: var(--wp--custom--letter-spacing--meta);
+  text-transform: uppercase;
+  color: var(--wp--preset--color--ink-faint);
+}
+
+.hero__meta p { margin: 0; }

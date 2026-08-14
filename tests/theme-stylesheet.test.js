@@ -362,3 +362,41 @@ describe("이미지 (설계 §1·§2)", () => {
     });
   });
 });
+
+describe("히어로 메타 (매핑 §4.2.0)", () => {
+  const template = readFileSync(
+    new URL("../theme/artpsy/templates/index.html", import.meta.url),
+    "utf8",
+  );
+
+  const RULES = [
+    [/display:\s*flex/, "가로 한 줄"],
+    [/gap:\s*var\(--wp--preset--spacing--40\)/, "코어 flex 의 blockGap 을 덮는다"],
+    [/margin-top:\s*var\(--wp--preset--spacing--50\)/, "h1 과의 간격"],
+    [/text-transform:\s*uppercase/, "§5.2 로 잠겨 CSS 만이 길이다"],
+    [/color:\s*var\(--wp--preset--color--ink-faint\)/, "메타 색"],
+    [/letter-spacing:\s*var\(--wp--custom--letter-spacing--meta\)/, "메타 자간"],
+  ];
+
+  for (const [pattern, label] of RULES) {
+    it(`.hero__meta — ${label}`, () => {
+      expect(bodyOf(".hero__meta")).toMatch(pattern);
+    });
+  }
+
+  it("규칙 목록이 조용히 줄어들지 않았다", () => {
+    expect(RULES).toHaveLength(6);
+  });
+
+  it("gap·margin 이 리터럴이 아니다 — 프리셋으로 나온다", () => {
+    const body = bodyOf(".hero__meta");
+    expect(body).not.toMatch(/gap:\s*[\d.]+(rem|px)/);
+    expect(body).not.toMatch(/margin-top:\s*[\d.]+(rem|px)/);
+  });
+
+  it("메타 문자열 셋이 Phase 1 그대로다 — 그 자리는 디자인 요소다", () => {
+    for (const text of ["Seoul", "Since 2026", "By appointment"]) {
+      expect(template).toContain(`<p>${text}</p>`);
+    }
+  });
+});
