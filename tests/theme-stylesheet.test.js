@@ -185,6 +185,7 @@ describe("미이식분 이식 (매핑 §4.2.0)", () => {
     [".lead", /color:\s*var\(--wp--preset--color--ink-soft\)/, "리드 색"],
     ["h2", /margin:\s*0 0 var\(--wp--preset--spacing--30\)/, "제목 아래 여백"],
     [".card", /border-top:\s*1px solid var\(--wp--custom--color--line\)/, "카드 경계"],
+    [".card h3", /margin:\s*0 0 var\(--wp--preset--spacing--20\)/, "제목 아래 여백 — blockGap 이 .card p 의 margin: 0 에 진다"],
     [".card p", /color:\s*var\(--wp--preset--color--ink-soft\)/, "카드 본문 색"],
     [".journal", /gap:\s*var\(--wp--preset--spacing--50\) var\(--wp--preset--spacing--40\)/, "저널 간격"],
     [".journal__date", /color:\s*var\(--wp--preset--color--ink-faint\)/, "날짜 색"],
@@ -199,7 +200,7 @@ describe("미이식분 이식 (매핑 §4.2.0)", () => {
   }
 
   it("규칙 목록이 조용히 줄어들지 않았다", () => {
-    expect(RULES).toHaveLength(16);
+    expect(RULES).toHaveLength(17);
   });
 
   // PR-5 가 .link 와 .grid 를 넣었는데 프로퍼티 단언이 하나도 없었다. 변이를 걸다가
