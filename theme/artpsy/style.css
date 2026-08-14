@@ -93,3 +93,81 @@ html.lenis body { height: auto; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* -- 전역 안전망 (매핑 §4.2.0) ---------------------------------------
+   WP 가 안 준다. box-sizing 은 .wp-block-group 에만 붙고(wp-block-group-inline-css),
+   img 는 :where(img[class*=wp-image-]) 로 업로드 이미지에만 붙는다 — 둘 다 컨테이너에서
+   확인했다. 없으면 패딩이 폭에 더해지고 이미지가 컨테이너를 넘는다. */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* -- 히어로 ------------------------------------------------------------
+   h1 의 폭이 여기서 정해진다. grid + align-content 가 없으면 h1 이 콘텐츠 폭이 아니라
+   블록 흐름 폭이 되고, Phase 1 과 어긋난다 (881 vs 1312 이 그 차이였다). */
+.hero {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  position: relative;
+  overflow: clip;
+}
+
+/* -- 섹션 경계 --------------------------------------------------------- */
+.section + .section { border-top: 1px solid var(--wp--custom--color--line); }
+
+/* -- eyebrow ----------------------------------------------------------
+   text-transform 이 §5.2 로 잠겨 있어 편집자가 못 고른다. CSS 만이 길이다. */
+.eyebrow {
+  font-size: var(--wp--preset--font-size--meta);
+  letter-spacing: var(--wp--custom--letter-spacing--meta);
+  text-transform: uppercase;
+  color: var(--wp--preset--color--ink-faint);
+  margin: 0 0 var(--wp--preset--spacing--30);
+}
+
+/* -- 리드 --------------------------------------------------------------
+   크기는 프리셋이 정하고 폭은 레이아웃의 contentSize 가 정한다. 색만 남는다. */
+.lead { color: var(--wp--preset--color--ink-soft); }
+
+/* -- 제목 아래 여백 ----------------------------------------------------
+   styles.elements.h2 는 서체·크기·행간·자간·굵기까지다. 여백은 슬롯이 없다. */
+h2 { margin: 0 0 var(--wp--preset--spacing--30); }
+
+/* -- 카드 -------------------------------------------------------------- */
+.card {
+  padding: var(--wp--preset--spacing--40) 0 0;
+  border-top: 1px solid var(--wp--custom--color--line);
+}
+
+.card p {
+  color: var(--wp--preset--color--ink-soft);
+  margin: 0;
+}
+
+/* -- 저널 --------------------------------------------------------------
+   .grid 와 같은 요소에 붙어 gap 만 덮는다. 세로가 더 넓은 것이 Phase 1 값이다. */
+.journal { gap: var(--wp--preset--spacing--50) var(--wp--preset--spacing--40); }
+
+.journal__date {
+  display: block;
+  margin-top: var(--wp--preset--spacing--20);
+  font-size: var(--wp--preset--font-size--meta);
+  letter-spacing: var(--wp--custom--letter-spacing--meta);
+  color: var(--wp--preset--color--ink-faint);
+}
+
+/* 저널 제목에는 클래스가 없다. 템플릿에 클래스를 더하면 이 PR 이 템플릿까지 넓어지므로
+   위치로 잡는다. styles.elements.h3 는 서체·크기·굵기까지라 나머지가 여기 남는다. */
+.journal__item h3 {
+  line-height: var(--wp--custom--line-height--heading);
+  letter-spacing: var(--wp--custom--letter-spacing--heading);
+  margin: var(--wp--preset--spacing--10) 0 0;
+}

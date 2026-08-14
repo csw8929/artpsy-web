@@ -170,3 +170,87 @@ describe("허용 블록 (편집경계 설계 §3.1)", () => {
     expect(filter).not.toMatch(/\$context\s*(===|==|->|\[)/);
   });
 });
+
+describe("미이식분 이식 (매핑 §4.2.0)", () => {
+  // 규칙마다 내려간다. "몇 개 있다"로 세면 하나가 빠져도 안 죽는다 (MyPrivate#6).
+  const RULES = [
+    [".hero", /min-height:\s*100svh/, "히어로 높이"],
+    [".hero", /display:\s*grid/, "h1 폭이 여기서 정해진다"],
+    [".hero", /align-content:\s*center/, "세로 중앙"],
+    [".hero", /position:\s*relative/, "배경 기준"],
+    [".hero", /overflow:\s*clip/, "패럴랙스가 넘치지 않게"],
+    [".section + .section", /border-top:\s*1px solid var\(--wp--custom--color--line\)/, "섹션 경계"],
+    [".eyebrow", /text-transform:\s*uppercase/, "§5.2 로 잠겨 CSS 만이 길이다"],
+    [".eyebrow", /color:\s*var\(--wp--preset--color--ink-faint\)/, "eyebrow 색"],
+    [".lead", /color:\s*var\(--wp--preset--color--ink-soft\)/, "리드 색"],
+    ["h2", /margin:\s*0 0 var\(--wp--preset--spacing--30\)/, "제목 아래 여백"],
+    [".card", /border-top:\s*1px solid var\(--wp--custom--color--line\)/, "카드 경계"],
+    [".card p", /color:\s*var\(--wp--preset--color--ink-soft\)/, "카드 본문 색"],
+    [".journal", /gap:\s*var\(--wp--preset--spacing--50\) var\(--wp--preset--spacing--40\)/, "저널 간격"],
+    [".journal__date", /color:\s*var\(--wp--preset--color--ink-faint\)/, "날짜 색"],
+    [".journal__item h3", /line-height:\s*var\(--wp--custom--line-height--heading\)/, "저널 제목 행간"],
+    [".journal__item h3", /letter-spacing:\s*var\(--wp--custom--letter-spacing--heading\)/, "저널 제목 자간"],
+  ];
+
+  for (const [selector, pattern, label] of RULES) {
+    it(`${selector} — ${label}`, () => {
+      expect(bodyOf(selector)).toMatch(pattern);
+    });
+  }
+
+  it("규칙 목록이 조용히 줄어들지 않았다", () => {
+    expect(RULES).toHaveLength(16);
+  });
+
+  // PR-5 가 .link 와 .grid 를 넣었는데 프로퍼티 단언이 하나도 없었다. 변이를 걸다가
+  // 찾았다 — .eyebrow 의 uppercase 를 지우려던 것이 .link 의 같은 줄을 지웠고 아무것도
+  // 안 죽었다. 그 규칙들이 이 파일에 사는 이상 여기서 같이 지킨다.
+  describe("PR-5 가 넣은 .link — 단언이 없었다", () => {
+    it("밑줄이 border-bottom 이다 — styles.elements.link 로는 표현이 안 된다", () => {
+      const body = bodyOf(".link");
+      expect(body).toMatch(/border-bottom:\s*1px solid currentColor/);
+      expect(body).toMatch(/text-decoration:\s*none/);
+    });
+
+    it("포커스 링이 잉크색 2px 다 — 기본 아웃라인은 근백색 위에서 안 보인다", () => {
+      const body = bodyOf(".link:focus-visible");
+      expect(body).toMatch(/outline:\s*2px solid var\(--wp--preset--color--ink\)/);
+      expect(body).toMatch(/outline-offset:\s*4px/);
+    });
+  });
+
+  describe("전역 안전망 — WP 가 안 준다", () => {
+    // box-sizing 은 .wp-block-group 에만, img 는 :where(img[class*=wp-image-]) 에만 붙는다.
+    // 둘 다 컨테이너에서 확인했다. 없으면 패딩이 폭에 더해지고 이미지가 컨테이너를 넘는다.
+    it("box-sizing 이 전역이다", () => {
+      expect(bodyOf("*::after")).toMatch(/box-sizing:\s*border-box/);
+    });
+
+    it("img·video 가 컨테이너를 안 넘는다", () => {
+      const body = bodyOf("video");
+      expect(body).toMatch(/max-width:\s*100%/);
+      expect(body).toMatch(/height:\s*auto/);
+    });
+  });
+});
+
+describe("성능 예산 단위 (테스트 전략 §3.4.3)", () => {
+  const budget = JSON.parse(
+    readFileSync(new URL("../perf-budget.json", import.meta.url), "utf8"),
+  );
+
+  // 회고 §2 가 히어로를 3.3MB 로 쓰는데 그 파일이 3,312,600 바이트다. 십진으로 나눠야
+  // 3.31 이 나온다 — 같은 문서가 MB 를 십진으로 쓴다.
+  it("초기 전송량이 십진 1,500,000 이다", () => {
+    expect(budget.budgets["initial.total"].max).toBe(1_500_000);
+  });
+
+  it("전체 전송량이 십진 4,000,000 이다", () => {
+    expect(budget.budgets["full.total"].max).toBe(4_000_000);
+  });
+
+  it("note 가 십진임을 적는다 — 애매함을 다음 사람에게 넘기지 않는다", () => {
+    expect(budget.budgets["initial.total"].note).toMatch(/십진/);
+    expect(budget.budgets["full.total"].note).toMatch(/십진/);
+  });
+});
