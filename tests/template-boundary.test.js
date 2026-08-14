@@ -95,12 +95,22 @@ describe("폭 사슬 (매핑 §3.6-A) — 조상이 좁으면 alignwide 가 무�
 
   // 섹션의 직계 자식만 본다. 카드·저널 항목도 contentOnly 지만 그것들은 그리드 아이템이라
   // wide 가 아니어야 한다 — 처음에 전수로 잡았다가 그 다섯이 걸렸다.
+  // wrap 은 섹션 직계의 그룹만이다. 히어로 이미지는 형제이지만 full-bleed 라 wide 가
+  // 아니어야 한다 — 배경으로 깔리는 것이 그 블록의 일이다.
+  const wrapsOf = (section) => section.children.filter((node) => node.name === "group");
+
   it("wrap 이 일곱이다 — 고정 덩어리 5 + 반복 영역 2", () => {
-    expect(sections.flatMap((section) => section.children)).toHaveLength(7);
+    expect(sections.flatMap(wrapsOf)).toHaveLength(7);
+  });
+
+  it("히어로 미디어는 full 이다 — 여백을 빠져나가야 배경이 된다", () => {
+    const media = collect((node) => hasClass(node, "hero__media-block"));
+    expect(media).toHaveLength(1);
+    expect(media[0].attrs.align).toBe("full");
   });
 
   for (const section of sections) {
-    for (const wrap of section.children) {
+    for (const wrap of wrapsOf(section)) {
       const label = `${sectionName(section)}/${classesOf(wrap).join(".") || "contentOnly"}`;
       it(`${label} 이 wide 다 — 여기가 좁으면 안쪽 alignwide 가 따라 좁아진다`, () => {
         expect(wrap.attrs.align).toBe("wide");
