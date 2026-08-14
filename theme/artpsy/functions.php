@@ -109,7 +109,10 @@ add_filter(
 add_filter(
 	'allowed_block_types_all',
 	function ( $allowed, $context ) {
-		$denied = array( 'core/button' );
+		// 컨테이너도 같이 뺀다. core/buttons 만 남기면 삽입은 되는데 자식을 못 받아
+		// 아무것도 담을 수 없는 껍데기가 된다 — 편집자는 "버튼"을 찾아 넣고 빈 상자를
+		// 받고 왜 안 되는지 알 방법이 없다. 열린 것처럼 보이는 잠금이다.
+		$denied = array( 'core/button', 'core/buttons' );
 
 		if ( ! is_array( $allowed ) ) {
 			$allowed = array_keys( WP_Block_Type_Registry::get_instance()->get_all_registered() );
