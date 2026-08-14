@@ -4,7 +4,7 @@
 // 규칙마다 따로 단언한다. "몇 개 있다"로 세면 하나가 빠져도 안 죽는다 — PR-3 의 fontFace 가
 // 정확히 그 모양이었다 (MyPrivate#6).
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const css = readFileSync(new URL("../theme/artpsy/style.css", import.meta.url), "utf8");
 const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -252,5 +252,105 @@ describe("성능 예산 단위 (테스트 전략 §3.4.3)", () => {
   it("note 가 십진임을 적는다 — 애매함을 다음 사람에게 넘기지 않는다", () => {
     expect(budget.budgets["initial.total"].note).toMatch(/십진/);
     expect(budget.budgets["full.total"].note).toMatch(/십진/);
+  });
+});
+
+describe("이미지 (설계 §1·§2)", () => {
+  const functionsPhp = readFileSync(
+    new URL("../theme/artpsy/functions.php", import.meta.url),
+    "utf8",
+  );
+  const template = readFileSync(
+    new URL("../theme/artpsy/templates/index.html", import.meta.url),
+    "utf8",
+  );
+
+  describe("히어로 아트디렉션", () => {
+    it("hero-portrait 사이즈를 등록한다 — 세로 파일을 하드코딩하지 않는 이유다", () => {
+      // 하드코딩하면 편집자가 히어로를 바꿔도 모바일만 옛 이미지로 남는다.
+      // 화면은 멀쩡히 뜨고 폰에서만 다른 그림이 나온다.
+      expect(functionsPhp).toMatch(
+        /add_image_size\(\s*'hero-portrait',\s*1080,\s*1440,\s*true\s*\)/,
+      );
+    });
+
+    it("첨부가 있으면 같은 첨부의 크롭을 쓴다", () => {
+      expect(functionsPhp).toMatch(/wp_get_attachment_image_url\(\s*\$id,\s*'hero-portrait'\s*\)/);
+    });
+
+    it("첨부가 없으면 테마 자산으로 떨어진다 — 시드도 아트디렉션이 된다", () => {
+      expect(functionsPhp).toMatch(/hero-codes-1080x1440\.webp/);
+    });
+
+    it("media 조건이 Phase 1 과 같다", () => {
+      expect(functionsPhp).toContain("(orientation: portrait), (max-width: 768px)");
+    });
+
+    it("히어로 블록만 감싼다 — 저널 썸네일은 코어에 맡긴다", () => {
+      expect(functionsPhp).toMatch(/'hero__media-block'/);
+    });
+  });
+
+  describe("저널 썸네일 — 코어에 맡긴다 (설계 §2)", () => {
+    it("템플릿에 sizes 상수가 없다", () => {
+      // sizes 상수는 Phase 2 에서 살아남지 않는다. 옮기는 것은 값이 아니라 유도식이고,
+      // 298px 은 애초에 틀린 값이었다 (266px 이 맞다, 매핑 §4.5).
+      expect(template).not.toMatch(/\bsizes=/);
+      expect(template).not.toContain("298px");
+      expect(template).not.toContain("266px");
+    });
+
+    it("썸네일이 코어 image 블록이다", () => {
+      expect(template).toMatch(/wp:image[^>]*journal__thumb-block/);
+    });
+  });
+
+  describe("시드 이미지", () => {
+    it("alt 가 빈 문자열이다 — 인접 h3 가 내용을 전달한다 (설계 §5)", () => {
+      const imgs = [...template.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]);
+      expect(imgs.length).toBeGreaterThan(0);
+      expect(imgs.filter((tag) => !/alt=""/.test(tag))).toEqual([]);
+    });
+
+    it("width·height 가 있다 — 예약 박스가 파일 도착에 의존하지 않게", () => {
+      const imgs = [...template.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]);
+      expect(imgs.filter((tag) => !/width="\d+"/.test(tag) || !/height="\d+"/.test(tag))).toEqual([]);
+    });
+  });
+
+  describe("이미지 CSS 넷", () => {
+    const RULES = [
+      [".hero__media", /object-fit:\s*cover/, "박스를 채운다"],
+      [".hero__media", /top:\s*-10%/, "main.js 의 yPercent: 12 와 묶여 있다"],
+      [".hero__media", /height:\s*120%/, "패럴랙스가 들어갈 여유"],
+      [".hero picture", /display:\s*contents/, "figure·picture 를 접어 그리드 아이템으로"],
+      [".hero::after", /pointer-events:\s*none/, "글 위 그라디언트가 클릭을 안 먹는다"],
+      [".journal__thumb", /aspect-ratio:\s*4 \/ 3/, "예약 박스가 파일 도착에 의존하지 않게"],
+      [".journal__thumb", /object-fit:\s*cover/, "비율 고정 후 채움"],
+    ];
+
+    for (const [selector, pattern, label] of RULES) {
+      it(`${selector} — ${label}`, () => {
+        expect(bodyOf(selector)).toMatch(pattern);
+      });
+    }
+
+    it("규칙 목록이 조용히 줄어들지 않았다", () => {
+      expect(RULES).toHaveLength(7);
+    });
+  });
+
+  describe("자산", () => {
+    const img = new URL("../theme/artpsy/assets/img/", import.meta.url);
+
+    for (const name of ["hero-codes-2560.webp", "hero-codes-1080x1440.webp"]) {
+      it(`${name} 이 테마 아래 있다`, () => {
+        expect(existsSync(new URL(name, img))).toBe(true);
+      });
+    }
+
+    it("원본 JPEG 를 안 옮겼다 — 3.3MB 이고 서빙되지 않는다", () => {
+      expect(existsSync(new URL("hero-codes.jpg", img))).toBe(false);
+    });
   });
 });

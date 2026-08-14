@@ -157,3 +157,65 @@ add_action(
 		);
 	}
 );
+
+/**
+ * 히어로 세로 크롭. 폰에서 히어로 박스가 2.6:1 세로인데 아트는 1.48:1 가로라
+ * object-fit 이 높이로 스케일하고, 폭으로 고른 소스가 ~3.5배 작게 온다 — WP 코어의
+ * 자동 srcset 도 폭 기반이라 같은 실패를 한다 (설계 §1).
+ *
+ * 세로 파일을 하드코딩하지 않는 이유가 이 사이즈의 존재 이유다. 편집자가 히어로를 바꾸면
+ * 모바일만 옛 이미지로 남고, 화면은 멀쩡히 뜨고 폰에서만 다른 그림이 나온다.
+ * WP 가 업로드 시 만들게 하면 교체가 자동으로 따라온다 (매핑 §5.4).
+ */
+add_action(
+	'after_setup_theme',
+	function () {
+		add_image_size( 'hero-portrait', 1080, 1440, true );
+	}
+);
+
+/**
+ * 히어로 이미지를 <picture> 로 감싼다. 폭 기반 srcset 으로는 위 문제를 못 고치므로
+ * 아트디렉션이 필요하고, 그건 코어 image 블록이 내지 않는다.
+ *
+ * 첨부가 있으면(편집자가 올린 것) 같은 첨부의 hero-portrait 를 쓰고, 없으면(템플릿 시드)
+ * 테마 자산의 세로 파일을 쓴다. 시드도 아트디렉션이 되어야 첫 화면이 흐리지 않다.
+ *
+ * 에디터 캔버스는 이 필터를 안 탄다 — 편집자는 데스크톱 크롭만 본다. 못 하는 것을
+ * 문서에 적는 편이 되는 것처럼 보이게 두는 것보다 낫다 (설계 §1.1).
+ */
+add_filter(
+	'render_block',
+	function ( $content, $block ) {
+		if ( 'core/image' !== ( $block['blockName'] ?? '' ) ) {
+			return $content;
+		}
+
+		$classes = preg_split( '/\s+/', $block['attrs']['className'] ?? '', -1, PREG_SPLIT_NO_EMPTY );
+		if ( ! in_array( 'hero__media-block', $classes, true ) ) {
+			return $content;
+		}
+
+		$id       = $block['attrs']['id'] ?? 0;
+		$portrait = $id ? wp_get_attachment_image_url( $id, 'hero-portrait' ) : '';
+
+		if ( ! $portrait ) {
+			$portrait = get_theme_file_uri( 'assets/img/hero-codes-1080x1440.webp' );
+		}
+
+		$source = sprintf(
+			'<source media="(orientation: portrait), (max-width: 768px)" srcset="%s" width="1080" height="1440" />',
+			esc_url( $portrait )
+		);
+
+		// <img> 를 감싼다. figure 안의 다른 것(캡션)은 건드리지 않는다.
+		return preg_replace(
+			'/(<img\b[^>]*>)/',
+			'<picture>' . $source . '$1</picture>',
+			$content,
+			1
+		);
+	},
+	10,
+	2
+);
