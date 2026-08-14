@@ -10,8 +10,8 @@
 //   X  스타일시트로 가는 것. theme.json 에 슬롯이 없어 path 가 없다
 //
 // pending
-//   매핑은 정해졌는데 theme.json 에 아직 없는 것. PR-3 이 채우면서 이 플래그를 지운다.
-//   몇 개 남았는지가 곧 남은 이식의 크기다.
+//   매핑은 정해졌는데 theme.json 에 아직 없다는 표시였다. PR-3 이 아홉을 다 채워서 지금은
+//   하나도 없다. 다시 생기면 그때 이 플래그를 쓴다 — 몇 개 남았는지가 남은 이식의 크기다.
 
 export const TOKEN_MAP = {
   // §3.1 색
@@ -20,12 +20,12 @@ export const TOKEN_MAP = {
   "--c-ink-soft": { bucket: "P", path: "settings.color.palette[ink-soft].color" },
   "--c-ink-faint": { bucket: "P", path: "settings.color.palette[ink-faint].color" },
   "--c-accent": { bucket: "P", path: "settings.color.palette[accent].color" },
-  "--c-paper-deep": { bucket: "C", path: "settings.custom.color.paperDeep", pending: true },
-  "--c-line": { bucket: "C", path: "settings.custom.color.line", pending: true },
+  "--c-paper-deep": { bucket: "C", path: "settings.custom.color.paperDeep" },
+  "--c-line": { bucket: "C", path: "settings.custom.color.line" },
 
   // §3.2 폰트
-  "--f-display": { bucket: "P", path: "settings.typography.fontFamilies[display].fontFamily", pending: true },
-  "--f-body": { bucket: "P", path: "settings.typography.fontFamilies[body].fontFamily", pending: true },
+  "--f-display": { bucket: "P", path: "settings.typography.fontFamilies[display].fontFamily" },
+  "--f-body": { bucket: "P", path: "settings.typography.fontFamilies[body].fontFamily" },
 
   // §3.3 크기
   "--t-display": { bucket: "P", path: "settings.typography.fontSizes[display].size" },
@@ -35,7 +35,7 @@ export const TOKEN_MAP = {
   "--t-meta": { bucket: "P", path: "settings.typography.fontSizes[meta].size" },
   // 카드 제목은 편집자가 고를 대상이 아니라 C 다. P 로 올리면 fontSizes 가 6개가 되어
   // "정확히 5개"와 정면으로 부딪힌다 (설계 §5(나)).
-  "--t-card": { bucket: "C", path: "settings.custom.fontSize.card", pending: true },
+  "--t-card": { bucket: "C", path: "settings.custom.fontSize.card" },
 
   // §3.4 라인하이트 · 자간
   "--lh-tight": { bucket: "C", path: "settings.custom.lineHeight.tight" },
@@ -43,7 +43,7 @@ export const TOKEN_MAP = {
   "--lh-normal": { bucket: "C", path: "settings.custom.lineHeight.normal" },
   "--ls-display": { bucket: "C", path: "settings.custom.letterSpacing.display" },
   "--ls-heading": { bucket: "C", path: "settings.custom.letterSpacing.heading" },
-  "--ls-meta": { bucket: "C", path: "settings.custom.letterSpacing.meta", pending: true },
+  "--ls-meta": { bucket: "C", path: "settings.custom.letterSpacing.meta" },
 
   // §3.5 간격
   "--s-1": { bucket: "P", path: "settings.spacing.spacingSizes[10].size" },
@@ -63,9 +63,9 @@ export const TOKEN_MAP = {
   "--gutter": { bucket: "S", path: "styles.spacing.padding.left" },
 
   // §3.7 모션
-  "--e-out": { bucket: "C", path: "settings.custom.motion.easeOut", pending: true },
-  "--d-fast": { bucket: "C", path: "settings.custom.motion.durationFast", pending: true },
-  "--d-slow": { bucket: "C", path: "settings.custom.motion.durationSlow", pending: true },
+  "--e-out": { bucket: "C", path: "settings.custom.motion.easeOut" },
+  "--d-fast": { bucket: "C", path: "settings.custom.motion.durationFast" },
+  "--d-slow": { bucket: "C", path: "settings.custom.motion.durationSlow" },
 };
 
 /** WP 가 프리셋 배열 이름에서 만드는 변수 접두사. 표를 늘리는 것이 아니라 WP 의 규칙이다. */

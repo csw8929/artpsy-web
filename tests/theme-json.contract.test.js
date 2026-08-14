@@ -5,12 +5,11 @@
 // 값을 하나씩 하드코딩해 비교하지 않고 규칙을 단언한다. 프리셋이 늘어나도 규칙은 남아야
 // 하기 때문이다. 예외는 slug 집합과 잠금 목록 — 그 둘은 "정확히 이것"이 곧 계약이다.
 //
-// 아직 이식되지 않은 것(PR-3)은 `it.fails`로 둔다. 조용히 빼면 없는 단언이 되고,
-// 그냥 실패로 두면 스위트가 빨간 채로 머지된다. `it.fails`는 지금 실패하는 것을
-// 기록하면서 **이식이 끝나는 순간 초록이 되어 스위트를 깨뜨린다** — 그때 `.fails`를
-// 떼는 것이 PR-3의 마지막 한 줄이다.
+// 이식되지 않은 것은 `it.fails`로 두는 것이 규칙이었고, PR-3 이 남은 아홉을 채우면서
+// 그 표시가 다 없어졌다. 다시 미이식이 생기면 같은 방식으로 표시한다 — 조용히 빼면
+// 없는 단언이 되고, 그냥 실패로 두면 스위트가 빨간 채로 머지된다.
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const themeJson = JSON.parse(
   readFileSync(new URL("../theme/artpsy/theme.json", import.meta.url), "utf8"),
@@ -42,8 +41,25 @@ describe("(a) 프리셋 개수와 slug 집합", () => {
     });
   }
 
-  // PR-3 미이식. 설계 §5(다).
-  it.fails("typography.fontFamilies 는 display·body 2개다", () => {
+  it("fontFace 가 가리키는 파일이 실제로 있다", () => {
+    // 이 단언이 없으면 src 오타가 아무 데도 안 걸린다. 값 대조(②)는 fontFamily 문자열만
+    // 보고, 파일이 없으면 브라우저가 스택의 다음 폰트로 조용히 내려앉는다 —
+    // 화면은 멀쩡히 뜨고 톤만 무너진다. 실제로 오타를 넣어 보고 아무것도 안 죽는 것을
+    // 확인한 뒤에 넣었다.
+    const themeDir = new URL("../theme/artpsy/", import.meta.url);
+    const sources = (at(settings, "typography.fontFamilies") ?? [])
+      .flatMap((family) => family.fontFace ?? [])
+      .flatMap((face) => (Array.isArray(face.src) ? face.src : [face.src]));
+
+    expect(sources.length).toBeGreaterThan(0);
+    for (const source of sources) {
+      expect(source.startsWith("file:./")).toBe(true);
+      const path = new URL(source.replace(/^file:\.\//, ""), themeDir);
+      expect(existsSync(path), `없는 파일: ${source}`).toBe(true);
+    }
+  });
+
+  it("typography.fontFamilies 는 display·body 2개다", () => {
     const families = at(settings, "typography.fontFamilies");
     expect(families).toHaveLength(2);
     expect(slugsOf(families).sort()).toEqual(["body", "display"]);
@@ -233,18 +249,9 @@ describe("(e) custom 변수 이름 유도", () => {
     expect(kebab("tight")).toBe("tight");
   });
 
-  it("지금 들어 있는 custom 키가 기대한 변수명으로 유도된다", () => {
-    expect(customVarNames(settings.custom)).toEqual([
-      "--wp--custom--letter-spacing--display",
-      "--wp--custom--letter-spacing--heading",
-      "--wp--custom--line-height--heading",
-      "--wp--custom--line-height--normal",
-      "--wp--custom--line-height--tight",
-    ]);
-  });
-
-  // PR-3 미이식. 매핑 §6 골격 + 설계 §5(나) 의 C 버킷 판정을 합친 목표 집합이다.
-  it.fails("이식이 끝나면 custom 이 목표 집합과 일치한다", () => {
+  // 이식 전에는 "지금 들어 있는 키"와 "목표 집합"을 따로 쟀는데, PR-3 이 채우면서 둘이
+  // 같은 것을 재게 됐다. 목표 집합 쪽만 남긴다 — 매핑 §6 골격 + 설계 §5(나) 의 C 버킷 판정이다.
+  it("custom 이 목표 집합과 일치한다", () => {
     expect(customVarNames(settings.custom)).toEqual([
       "--wp--custom--color--line",
       "--wp--custom--color--paper-deep",
