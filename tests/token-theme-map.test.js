@@ -79,9 +79,17 @@ describe("① tokens.css 의 모든 토큰이 매핑표에 있다", () => {
 });
 
 describe("② 토큰 값이 theme.json 과 같다", () => {
+  // derived 는 값이 같지 않고 유도된다. 여기서 빼되 조용히 빠지지 않게 아래에서 센다.
   const compared = Object.entries(TOKEN_MAP).filter(
-    ([, entry]) => entry.bucket !== "X" && entry.path,
+    ([, entry]) => entry.bucket !== "X" && entry.path && !entry.derived,
   );
+
+  it("유도 항목이 정확히 하나다 — 새로 생기면 유도 단언도 같이 생겨야 한다", () => {
+    const derived = Object.entries(TOKEN_MAP)
+      .filter(([, entry]) => entry.derived)
+      .map(([token]) => token);
+    expect(derived).toEqual(["--page-max"]);
+  });
 
   for (const [token, entry] of compared) {
     const check = () => {
@@ -135,5 +143,47 @@ describe("③ styles 의 leaf 가 리터럴이 아니라 변수 참조다", () =
 
   it("예외가 정확히 둘이다", () => {
     expect(EXCEPTIONS).toHaveLength(2);
+  });
+});
+
+describe("유도 — wideSize (매핑 §3.6.2)", () => {
+  // --page-max 는 .wrap 의 border-box max-width 라 거터를 포함한 바깥 폭이고,
+  // wideSize 는 안쪽 폭이다. 같은 숫자를 넣으면 1280 이상에서 2×거터만큼 넓어진다
+  // (tester 실측 1184 vs 1312).
+  //
+  // 82 − 2×4 = 74 가 성립하는 것은 wideSize 가 구속이 되는 구간에서 거터가 clamp 상한에
+  // 고정되기 때문이다. 두 상수가 맞물린 결과라 --s-5 를 바꾸면 조용히 틀린다 —
+  // 화면은 멀쩡히 뜨고 폭만 어긋난다. 그래서 유도를 여기서 다시 계산한다.
+  const rem = (value) => {
+    const match = String(value).trim().match(/^(-?[\d.]+)rem$/);
+    if (!match) throw new Error(`rem 이 아니다: ${value}`);
+    return Number.parseFloat(match[1]);
+  };
+
+  /** --gutter 의 clamp 세 번째 인자가 상한이다. 그 값이 참조하는 토큰을 되짚는다. */
+  function gutterMaxRem() {
+    const clamp = TOKENS["--gutter"].match(/^clamp\((.+)\)$/);
+    expect(clamp, "--gutter 가 clamp 가 아니다").not.toBeNull();
+
+    const upper = clamp[1].split(",").at(-1).trim();
+    const ref = upper.match(/^var\(\s*(--[a-z0-9-]+)\s*\)$/);
+    expect(ref, `--gutter 상한이 토큰 참조가 아니다: ${upper}`).not.toBeNull();
+
+    return rem(TOKENS[ref[1]]);
+  }
+
+  it("유도식이 tokens.css 의 값에서 나온다", () => {
+    expect(rem(TOKENS["--page-max"])).toBe(82);
+    expect(gutterMaxRem()).toBe(4);
+  });
+
+  it("theme.json 의 wideSize 가 유도값과 같다", () => {
+    const expected = rem(TOKENS["--page-max"]) - 2 * gutterMaxRem();
+    expect(themeJson.settings.layout.wideSize).toBe(`${expected}rem`);
+  });
+
+  it("contentSize 는 --measure 그대로다 — 유도가 아니다", () => {
+    // 읽기 폭은 바깥/안쪽 구분이 없다. 여기까지 유도로 만들면 없는 결합을 만든다.
+    expect(themeJson.settings.layout.contentSize).toBe(TOKENS["--measure"]);
   });
 });

@@ -57,7 +57,14 @@ export const TOKEN_MAP = {
 
   // §3.6 레이아웃
   "--measure": { bucket: "S", path: "settings.layout.contentSize" },
-  "--page-max": { bucket: "S", path: "settings.layout.wideSize" },
+  // 값이 같지 않다. --page-max 는 거터를 포함한 바깥 폭이고(.wrap 의 border-box max-width),
+  // wideSize 는 안쪽 폭이다. 같은 숫자를 넣으면 1280 이상에서 2×거터만큼 넓어진다.
+  // 유도식은 token-theme-map.test.js 가 단언한다 — 산문에만 두면 그것도 선언이다.
+  "--page-max": {
+    bucket: "S",
+    path: "settings.layout.wideSize",
+    derived: "wideSize = --page-max − 2 × (--gutter clamp 상한)",
+  },
   // 좌우가 같은 값이라 왼쪽만 대조한다. 둘이 갈라지는 것은 ③이 잡을 자리가 아니라
   // 디자인 결정이고, 지금은 같아야 한다는 것이 매핑 §3.6 이다.
   "--gutter": { bucket: "S", path: "styles.spacing.padding.left" },
