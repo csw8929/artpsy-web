@@ -89,3 +89,29 @@ add_filter(
 	10,
 	2
 );
+
+/**
+ * 버튼 블록을 전역에서 뺀다. 이 디자인에 버튼 컴포넌트가 없다 — .link 는 밑줄 텍스트다.
+ * 스타일을 맞추느니 못 쓰게 하는 편이 싸다 (매핑 §5.3).
+ *
+ * 거부 목록이다. 허용 목록을 손으로 적지 않는다 — 지금 못 박으면 다음 템플릿마다 풀어야
+ * 하고, Journal 본문이 무엇을 쓸지는 아직 정해지지 않았다. 등록된 것에서 빼는 형태라
+ * 코어가 블록을 늘려도 따라온다.
+ *
+ * $context 로 분기하지 않는다. 분기할 대상(Journal 포스트 타입)이 아직 없고, 없는 것을
+ * 위한 분기가 다음 불일치가 된다 (설계 §3.1).
+ */
+add_filter(
+	'allowed_block_types_all',
+	function ( $allowed, $context ) {
+		$denied = array( 'core/button' );
+
+		if ( ! is_array( $allowed ) ) {
+			$allowed = array_keys( WP_Block_Type_Registry::get_instance()->get_all_registered() );
+		}
+
+		return array_values( array_diff( $allowed, $denied ) );
+	},
+	10,
+	2
+);
