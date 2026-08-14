@@ -187,6 +187,9 @@ describe("미이식분 이식 (매핑 §4.2.0)", () => {
     [".card", /border-top:\s*1px solid var\(--wp--custom--color--line\)/, "카드 경계"],
     [".card h3", /margin:\s*0 0 var\(--wp--preset--spacing--20\)/, "제목 아래 여백 — blockGap 이 .card p 의 margin: 0 에 진다"],
     [".card p", /color:\s*var\(--wp--preset--color--ink-soft\)/, "카드 본문 색"],
+    // 끝의 세미콜론까지 본다. /margin:\s*0/ 만으로는 `margin: 0 0 24px` 도 통과하는데
+    // 그건 마진을 끈 것이 아니라 다시 켠 것이다.
+    [".card p", /margin:\s*0;/, "코어 blockGap 24px 을 누른다 — 지우면 간격이 16 이 아니라 24 다"],
     [".journal", /gap:\s*var\(--wp--preset--spacing--50\) var\(--wp--preset--spacing--40\)/, "저널 간격"],
     [".journal__date", /color:\s*var\(--wp--preset--color--ink-faint\)/, "날짜 색"],
     [".journal__item h3", /line-height:\s*var\(--wp--custom--line-height--heading\)/, "저널 제목 행간"],
@@ -200,7 +203,7 @@ describe("미이식분 이식 (매핑 §4.2.0)", () => {
   }
 
   it("규칙 목록이 조용히 줄어들지 않았다", () => {
-    expect(RULES).toHaveLength(17);
+    expect(RULES).toHaveLength(18);
   });
 
   // PR-5 가 .link 와 .grid 를 넣었는데 프로퍼티 단언이 하나도 없었다. 변이를 걸다가
