@@ -1,0 +1,39 @@
+# PR 화면에 통과 여부를 남긴다. 사용자는 게이트가 아니라 독자이고, 이 체크가 그 창구를
+# 완성한다 (운영계획 §3.3).
+#
+# 성능은 여기서 재지 않는다 (PERF-OWN-R3). 초록 체크가 단언하는 것은 "빌드가 서고 테스트가
+# 돈다"뿐인데, 성능 스텝을 끼우면 리뷰어에게 "성능 확인됨"으로 읽힌다. 실측이 흔들리는 것도
+# 근거다 — 5회 중 1회 1,932ms / 중앙값 1,288ms. flaky 한 게이트는 두 번째 빨간불부터
+# 무시당한다. 성능 판정은 라운드/Phase 경계에서 tester 가 하네스로 한다.
+#
+# wp-env 도 띄우지 않는다 (운영계획 §4.3). 느리고, 지금 필요한 단언은 전부 정적이다.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 패치까지 박지 않는다. 박으면 우리가 안 돌려본 조합을 고정하게 된다.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # 어느 조합에서 통과했는지가 로그에 남아야 한다.
+      - name: versions
+        run: node -v && npm -v
+
+      # npm install 이 아니라 npm ci 다. lock 을 그대로 쓴다 — 이슈 #3 이
+      # "설치가 성공으로 보이는 것을 성공으로 읽어서" 났다.
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm test
