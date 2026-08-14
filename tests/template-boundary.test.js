@@ -83,6 +83,32 @@ describe("섹션 잠금 (설계 §3) — 섹션마다 내려간다", () => {
   }
 });
 
+describe("폭 사슬 (매핑 §3.6-A) — 조상이 좁으면 alignwide 가 무효다", () => {
+  // main 이 constrained 라 align 없는 자식은 contentSize(34rem=544px)로 잘리고,
+  // 그 안의 alignwide 는 544 를 기준으로 계산된다. 실측에서 h1 이 1440 에서 544px 였다.
+  // Phase 1 의 .section 은 폭 제한이 없고 안쪽 .wrap(82rem)이 폭을 정한다 — 그 구조를 옮긴다.
+  for (const section of sections) {
+    it(`${sectionName(section)} 이 main 의 contentSize 를 벗어난다`, () => {
+      expect(section.attrs.align).toBe("full");
+    });
+  }
+
+  // 섹션의 직계 자식만 본다. 카드·저널 항목도 contentOnly 지만 그것들은 그리드 아이템이라
+  // wide 가 아니어야 한다 — 처음에 전수로 잡았다가 그 다섯이 걸렸다.
+  it("wrap 이 일곱이다 — 고정 덩어리 5 + 반복 영역 2", () => {
+    expect(sections.flatMap((section) => section.children)).toHaveLength(7);
+  });
+
+  for (const section of sections) {
+    for (const wrap of section.children) {
+      const label = `${sectionName(section)}/${classesOf(wrap).join(".") || "contentOnly"}`;
+      it(`${label} 이 wide 다 — 여기가 좁으면 안쪽 alignwide 가 따라 좁아진다`, () => {
+        expect(wrap.attrs.align).toBe("wide");
+      });
+    }
+  }
+});
+
 describe("고정 덩어리 (설계 §2.1-A) — 섹션마다 내려간다", () => {
   for (const section of sections) {
     const fixed = section.children.filter((node) => node.attrs.templateLock === "contentOnly");
