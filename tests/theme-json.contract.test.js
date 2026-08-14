@@ -47,15 +47,23 @@ describe("(a) 프리셋 개수와 slug 집합", () => {
     // 화면은 멀쩡히 뜨고 톤만 무너진다. 실제로 오타를 넣어 보고 아무것도 안 죽는 것을
     // 확인한 뒤에 넣었다.
     const themeDir = new URL("../theme/artpsy/", import.meta.url);
-    const sources = (at(settings, "typography.fontFamilies") ?? [])
-      .flatMap((family) => family.fontFace ?? [])
-      .flatMap((face) => (Array.isArray(face.src) ? face.src : [face.src]));
+    const families = at(settings, "typography.fontFamilies") ?? [];
+    expect(families.length).toBeGreaterThan(0);
 
-    expect(sources.length).toBeGreaterThan(0);
-    for (const source of sources) {
-      expect(source.startsWith("file:./")).toBe(true);
-      const path = new URL(source.replace(/^file:\.\//, ""), themeDir);
-      expect(existsSync(path), `없는 파일: ${source}`).toBe(true);
+    for (const family of families) {
+      // 패밀리마다 따로 본다. 전부 평탄화한 뒤 "합이 0이 아니다"만 재면 한 패밀리가
+      // fontFace 를 통째로 잃어도 다른 쪽 src 가 남아 통과한다 — 그 패밀리만 시스템
+      // 폰트로 내려앉고 화면은 멀쩡히 뜬다.
+      const faces = family.fontFace ?? [];
+      expect(faces.length, `fontFace 없음: ${family.slug}`).toBeGreaterThan(0);
+
+      for (const face of faces) {
+        for (const source of Array.isArray(face.src) ? face.src : [face.src]) {
+          expect(source.startsWith("file:./")).toBe(true);
+          const path = new URL(source.replace(/^file:\.\//, ""), themeDir);
+          expect(existsSync(path), `없는 파일: ${source}`).toBe(true);
+        }
+      }
     }
   });
 
