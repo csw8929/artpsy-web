@@ -36,6 +36,21 @@ describe("시트가 실릴 배선이 있다", () => {
     expect(functionsPhp).toMatch(/wp_enqueue_style\(\s*[\s\S]*get_stylesheet_uri\(\)/);
   });
 
+  it("data-reveal 을 render_block 으로 붙인다 — 마크업에 박으면 블록 검증이 깨진다", () => {
+    // core/heading 의 supports 는 anchor 까지다. 저장된 HTML 에 없는 속성이 있으면 검증이
+    // 깨지므로 템플릿이 아니라 서버 렌더에서 붙인다.
+    expect(functionsPhp).toMatch(/add_filter\(\s*\n?\s*'render_block'/);
+    expect(functionsPhp).toMatch(/data-reveal/);
+  });
+
+  it("reveal 대상이 섹션 제목과 리드로 한정된다", () => {
+    // 히어로 h1 은 LCP 후보라 빼고, 반복 항목은 편집자가 추가한 것에 속성이 없어서 뺀다.
+    // 이 단언은 조건이 코드에 있는지까지만 본다 — 실제 붙는 자리는 PHP 하네스가 판정했다.
+    expect(functionsPhp).toMatch(/'core\/heading'\s*===\s*\$name\s*&&\s*2\s*===/);
+    expect(functionsPhp).toMatch(/'core\/paragraph'\s*===\s*\$name/);
+    expect(functionsPhp).toMatch(/'lead'/);
+  });
+
   it("에디터 캔버스에도 건다 — .link·.grid 는 편집자가 보면서 고친다", () => {
     // PR-4 에서는 안 걸었다. 그 시트의 셋(Lenis·reveal 초기 상태·reduced-motion)은
     // 편집자가 에디터에서 볼 것이 아니었기 때문이다. .link 와 .grid 가 들어오면서
