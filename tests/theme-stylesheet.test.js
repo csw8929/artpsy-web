@@ -363,6 +363,26 @@ describe("이미지 (설계 §1·§2)", () => {
   });
 });
 
+describe("flow 마진 (매핑 §4.2.4)", () => {
+  // WP flow 레이아웃이 첫 자식이 아닌 형제에 margin-block-start 를 얹는다.
+  // .grid 는 gap 위에 세로 간격이 겹쳤고, .hero 는 align-content: center 라 콘텐츠가
+  // 절반만큼 밀렸다 — 같은 기전이라 같은 형태로 끈다.
+  const TARGETS = [".grid > *", ".hero > *"];
+
+  for (const selector of TARGETS) {
+    it(`${selector} 의 세로 마진을 끈다`, () => {
+      expect(bodyOf(selector)).toMatch(/margin-block:\s*0/);
+    });
+  }
+
+  it("두 곳뿐이다 — 전역으로 끄지 않는다", () => {
+    // 고정 덩어리 안의 eyebrow-h1-메타 간격이 그 마진에 기대고 있다.
+    const hits = [...withoutComments.matchAll(/([^{}]+)\{[^}]*margin-block:\s*0[^}]*\}/g)]
+      .map((m) => m[1].trim());
+    expect(hits.sort()).toEqual([...TARGETS].sort());
+  });
+});
+
 describe("히어로 메타 (매핑 §4.2.0)", () => {
   const template = readFileSync(
     new URL("../theme/artpsy/templates/index.html", import.meta.url),
