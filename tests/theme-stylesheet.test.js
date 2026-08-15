@@ -321,21 +321,35 @@ describe("이미지 (설계 §1·§2)", () => {
       expect(imgs.filter((tag) => !/alt=""/.test(tag))).toEqual([]);
     });
 
-    it("width·height 가 있다 — 예약 박스가 파일 도착에 의존하지 않게", () => {
+    it("src·alt 뿐이다 — 그 밖의 속성은 블록을 무효로 만든다", () => {
+      // core/image 의 save() 가 <img> 에 내는 것은 src 와 alt 뿐이다. class 는 첨부일 때의
+      // wp-image-N 과 테두리에서만 나오고, width·height 는 블록 주석의 속성이라
+      // 인라인 style 로 나가지 HTML 속성이 되지 않는다 (WP 7.0.4 block-library.js save26).
+      // 검증은 속성 **개수**부터 보므로 하나만 더 있어도 has-warning 이 붙고, 편집자가
+      // 그 이미지를 클릭하면 "블록 복구"가 떠서 마크업이 save() 출력으로 덮인다.
       const imgs = [...template.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]);
-      expect(imgs.filter((tag) => !/width="\d+"/.test(tag) || !/height="\d+"/.test(tag))).toEqual([]);
+      const names = imgs.map((tag) => [...tag.matchAll(/\s([a-zA-Z-]+)=/g)].map((m) => m[1]).sort());
+      expect(names).toEqual(imgs.map(() => ["alt", "src"]));
     });
   });
 
   describe("이미지 CSS 넷", () => {
+    // 선택자가 클래스에서 구조로 바뀌었다. <img> 는 저장 마크업에 클래스를 못 들기
+    // 때문이고(위 "src·alt 뿐이다"), 대조하는 선언 목록은 그대로 간다.
+    const HERO_MEDIA = ".hero .hero__media-block img";
+    const JOURNAL_THUMB = ".journal__thumb-block img";
+
     const RULES = [
-      [".hero__media", /object-fit:\s*cover/, "박스를 채운다"],
-      [".hero__media", /top:\s*-10%/, "main.js 의 yPercent: 12 와 묶여 있다"],
-      [".hero__media", /height:\s*120%/, "패럴랙스가 들어갈 여유"],
+      [HERO_MEDIA, /object-fit:\s*cover/, "박스를 채운다"],
+      [HERO_MEDIA, /top:\s*-10%/, "main.js 의 yPercent: 12 와 묶여 있다"],
+      [HERO_MEDIA, /height:\s*120%/, "패럴랙스가 들어갈 여유"],
+      // width·height 속성을 뺀 뒤 히어로가 CLS 를 안 만드는 근거가 이 한 줄이다 — 흐름
+      // 밖이라 파일이 늦게 와도 아래 것을 밀지 않는다.
+      [HERO_MEDIA, /position:\s*absolute/, "흐름 밖이라 예약 박스가 필요 없다"],
       [".hero picture", /display:\s*contents/, "figure·picture 를 접어 그리드 아이템으로"],
       [".hero::after", /pointer-events:\s*none/, "글 위 그라디언트가 클릭을 안 먹는다"],
-      [".journal__thumb", /aspect-ratio:\s*4 \/ 3/, "예약 박스가 파일 도착에 의존하지 않게"],
-      [".journal__thumb", /object-fit:\s*cover/, "비율 고정 후 채움"],
+      [JOURNAL_THUMB, /aspect-ratio:\s*4 \/ 3/, "예약 박스가 파일 도착에 의존하지 않게"],
+      [JOURNAL_THUMB, /object-fit:\s*cover/, "비율 고정 후 채움"],
     ];
 
     for (const [selector, pattern, label] of RULES) {
@@ -345,7 +359,7 @@ describe("이미지 (설계 §1·§2)", () => {
     }
 
     it("규칙 목록이 조용히 줄어들지 않았다", () => {
-      expect(RULES).toHaveLength(7);
+      expect(RULES).toHaveLength(8);
     });
   });
 

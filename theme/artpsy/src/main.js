@@ -93,12 +93,17 @@ function initReveals() {
   });
 }
 
+// The hero <img> carries no class of ours — core/image saves only src and alt,
+// and any extra attribute invalidates the block. style.css hooks the same
+// structure; keep the two strings identical so a rename is one grep.
+const HERO_MEDIA = ".hero .hero__media-block img";
+
 function initHeroParallax() {
-  const media = document.querySelector(".hero__media");
+  const media = document.querySelector(HERO_MEDIA);
   if (!media) return;
 
   gsap.to(media, {
-    // Coupled to `inset: -10% 0` on .hero__media (base.css). The media is 120%
+    // Coupled to `inset: -10% 0` on the hero media rule (style.css). It is 120%
     // of the hero, so 12% of its own height is 14.4% of the hero — more than
     // the 10% of headroom above it. It only stays hidden because that offset is
     // reached past 0.69 of the scrub, by which point the hero top is off
@@ -138,7 +143,7 @@ function stopMotion() {
   }
 
   gsap.set("[data-reveal]", { opacity: 1, y: 0 });
-  gsap.set(".hero__media", { willChange: "auto" });
+  gsap.set(HERO_MEDIA, { willChange: "auto" });
 }
 
 if (motionQuery.matches) {

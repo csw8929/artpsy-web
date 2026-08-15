@@ -70,6 +70,11 @@ function splitList(prelude) {
 // ② 이름이 바뀐 짝. 왼쪽이 base.css, 오른쪽이 테마의 선택자다.
 const RENAMED = {
   ".journal__title": ".journal__item h3",
+  // <img> 는 저장 마크업에 클래스를 못 든다 — core/image 의 save() 가 src·alt 만 내므로
+  // 클래스가 하나라도 있으면 블록이 무효가 된다. figure 의 className 은 코어가 내주므로
+  // 그것을 걸이로 삼아 구조로 잡는다.
+  ".hero__media": ".hero .hero__media-block img",
+  ".journal__thumb": ".journal__thumb-block img",
 };
 
 // ③ 옮길 것이 없는 것. **이유 없이는 못 들어간다** — 이유를 강제하는 것이 이 목록의 값이다.
