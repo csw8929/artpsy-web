@@ -288,6 +288,13 @@
       "postTypes": [
         "page"
       ]
+    },
+    {
+      "name": "page-privacy",
+      "title": "개인정보 처리방침",
+      "postTypes": [
+        "page"
+      ]
     }
   ],
   "templateParts": [

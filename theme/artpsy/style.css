@@ -406,3 +406,69 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
   line-height: var(--wp--custom--line-height--normal);
   color: var(--wp--preset--color--ink-faint);
 }
+
+/* -- 문의 폼 (PR 6) ----------------------------------------------------
+   폼 자체는 렌더에서 주입된다(functions.php) — nonce 를 정적 템플릿에 못 담기 때문이다.
+   그래서 이 규칙들이 잡는 것은 블록이 아니라 그 주입된 마크업이다.
+
+   폭을 contentSize 로 잡는다. 주입된 raw HTML 이라 코어의 constrained 레이아웃이
+   자식으로 안 세고, 안 잡으면 폼이 wide 폭(1184)까지 늘어나 입력 줄이 한 화면을 가로지른다.
+   리터럴 대신 코어가 내는 변수를 쓴다 — theme.json 과 두 벌이 되지 않게. */
+.contact-form { max-width: var(--wp--style--global--content-size); }
+
+.contact-form__form { margin-top: var(--wp--preset--spacing--40); }
+
+.contact-form__field {
+  display: grid;
+  gap: var(--wp--preset--spacing--10);
+  margin: 0 0 var(--wp--preset--spacing--30);
+}
+
+/* 라벨은 .eyebrow 와 같은 자리다 — 대문자·자간이 theme.json 으로 안 나온다. */
+.contact-form__field label {
+  font-size: var(--wp--preset--font-size--meta);
+  letter-spacing: var(--wp--custom--letter-spacing--meta);
+  text-transform: uppercase;
+  color: var(--wp--preset--color--ink-faint);
+}
+
+/* 상자를 그리지 않는다. 이 디자인의 선은 전부 아래쪽 1px 이다 (.link · .section + .section). */
+.contact-form__field input,
+.contact-form__field textarea {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--wp--custom--color--line);
+  padding: var(--wp--preset--spacing--10) 0;
+}
+
+.contact-form__consent {
+  display: flex;
+  gap: var(--wp--preset--spacing--10);
+  align-items: baseline;
+  font-size: var(--wp--preset--font-size--meta);
+  color: var(--wp--preset--color--ink-soft);
+}
+
+/* 체크박스는 브라우저 것을 쓴다. 직접 그리면 required 의 기본 안내(툴팁·포커스)를
+   같이 잃고, 그건 JS 없이 서는 폼에서 유일한 안내다. */
+.contact-form__consent input { flex: none; }
+
+/* .link 의 모양을 그대로 쓰되 button 의 기본값만 지운다. */
+.contact-form__submit button.link {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  cursor: pointer;
+}
+
+/* .link:focus-visible 와 같은 이유 — 기본 아웃라인은 이 종이 위에서 안 보인다. */
+.contact-form__field input:focus-visible,
+.contact-form__field textarea:focus-visible,
+.contact-form__consent input:focus-visible,
+.contact-form__submit button:focus-visible {
+  outline: 2px solid var(--wp--preset--color--ink);
+  outline-offset: 4px;
+}

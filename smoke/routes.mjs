@@ -62,5 +62,5 @@ export const ROUTES = [
 // 라우트가 늘 때마다 이 수를 손으로 올린다. 표만 늘리고 세는 곳이 없으면
 // "장치가 아무것도 안 재는 상태"로 초록불이 난다 (PR2-SMOKE §2-1).
 //
-// 3(프론트) + 5(페이지) + 3(저널) = 11. 표를 늘리면 여기가 터진다 — 그것이 의도다.
-export const EXPECTED_ROUTE_COUNT = 11;
+// 3(프론트) + 6(페이지, privacy 포함) + 3(저널) = 12. 표를 늘리면 여기가 터진다.
+export const EXPECTED_ROUTE_COUNT = 12;
