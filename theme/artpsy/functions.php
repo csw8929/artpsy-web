@@ -790,3 +790,106 @@ add_action(
 	}
 );
 
+/**
+ * 기본 SEO. **코어가 이미 내는 것은 안 건드린다** — 응답을 열어서 확인했다.
+ *
+ *   <title>            코어가 낸다 (블록 테마는 title-tag 를 자동으로 받는다)
+ *   rel=canonical      코어가 낸다
+ *   wp-sitemap.xml     코어가 낸다. artpsy_journal 이 담기고 artpsy_inquiry 는 빠진다
+ *
+ * 남는 것이 메타태그이고 이 절이 그것만 한다. 플러그인을 안 넣는다 — 요구사항이 "기본 SEO" 다.
+ *
+ * **설명을 우리가 짓지 않는다.** 여기서 카피를 쓰기 시작하면 그 문장이 검색 결과에 나가고,
+ * 우리는 이 사업체에 대해 아무것도 모른다. 편집자가 넣은 발췌를 쓰고, 없으면 사이트
+ * 태그라인으로 떨어진다 — **채우는 자리를 만드는 것이 우리 일이고 채우는 것은 아니다**
+ * (/privacy/ · FAQ 와 같은 선).
+ *
+ * 자동 발췌를 안 쓴다. get_the_excerpt() 는 발췌가 없으면 본문에서 만들어 내는데, 그것은
+ * 편집자가 "이 페이지를 이렇게 소개한다" 고 고른 문장이 아니다.
+ */
+add_action(
+	'after_setup_theme',
+	function () {
+		// 편집자가 채울 자리를 만든다. 페이지에는 기본으로 발췌가 없다.
+		add_post_type_support( 'page', 'excerpt' );
+	}
+);
+
+/** 이 요청이 가리키는 정본 URL. og:url 이 라우트마다 달라야 하는 근거다. */
+function artpsy_seo_url() {
+	if ( is_front_page() ) {
+		return home_url( '/' );
+	}
+
+	if ( is_singular() ) {
+		return (string) get_permalink();
+	}
+
+	if ( is_post_type_archive() ) {
+		return (string) get_post_type_archive_link( (string) get_query_var( 'post_type' ) );
+	}
+
+	return home_url( add_query_arg( array() ) );
+}
+
+/** 편집자가 고른 문장 → 없으면 사이트 태그라인. 우리가 짓는 자리는 없다. */
+function artpsy_seo_description() {
+	if ( is_singular() ) {
+		$post = get_post();
+		if ( $post && '' !== trim( (string) $post->post_excerpt ) ) {
+			return trim( (string) $post->post_excerpt );
+		}
+	}
+
+	return (string) get_bloginfo( 'description' );
+}
+
+/** 대표 이미지 → 없으면 히어로. 절대 URL 이어야 소셜이 가져간다. */
+function artpsy_seo_image() {
+	if ( is_singular() ) {
+		$id = get_post_thumbnail_id();
+		if ( $id ) {
+			$src = wp_get_attachment_image_url( $id, 'full' );
+			if ( $src ) {
+				return (string) $src;
+			}
+		}
+	}
+
+	return (string) get_theme_file_uri( 'assets/img/hero-codes-2560.webp' );
+}
+
+add_action(
+	'wp_head',
+	function () {
+		$title = wp_get_document_title();
+		$url   = artpsy_seo_url();
+		$desc  = artpsy_seo_description();
+		$image = artpsy_seo_image();
+
+		$tags = array(
+			array( 'name', 'description', $desc ),
+			array( 'property', 'og:type', is_singular( array( 'post', 'artpsy_journal' ) ) ? 'article' : 'website' ),
+			array( 'property', 'og:title', $title ),
+			array( 'property', 'og:description', $desc ),
+			array( 'property', 'og:url', $url ),
+			array( 'property', 'og:site_name', get_bloginfo( 'name' ) ),
+			array( 'property', 'og:image', $image ),
+			array( 'name', 'twitter:card', 'summary_large_image' ),
+		);
+
+		foreach ( $tags as list( $attr, $key, $value ) ) {
+			if ( '' === (string) $value ) {
+				continue;
+			}
+			printf(
+				"<meta %s=\"%s\" content=\"%s\" />\n",
+				esc_attr( $attr ),
+				esc_attr( $key ),
+				esc_attr( $value )
+			);
+		}
+	},
+	5
+);
+
