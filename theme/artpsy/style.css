@@ -496,3 +496,68 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
   margin: 0;
   color: var(--wp--preset--color--ink-faint);
 }
+
+/* -- 모바일 내비 (PR 8 · PR4-ACK §6) -----------------------------------
+   390 에서 헤더가 177.58px 였다 — 브랜드 한 줄 + 내비 세 줄이고 첫 화면의 20% 다.
+   접는다. JS 를 안 쓴다: <details> 는 열림 상태가 브라우저 것이라 스크립트가 죽어도
+   메뉴에 닿을 수 있다. 햄버거를 JS 로 만들면 이 테마의 "JS 실패가 백지가 되면 안 된다"
+   가 "메뉴에 아예 접근이 안 된다" 로 나타난다.
+
+   데스크톱은 항상 펴 둔다. 그런데 **닫힌 <details> 의 내용은 CSS 로 그냥 못 편다** —
+   흔히 쓰이는 `details:not([open]) > *:not(summary) { display: block }` 은 Chrome 138 에서
+   **안 먹는다**(실측: details 높이 18 그대로). 지금 여는 방법은 ::details-content 뿐이다.
+
+   그래서 @supports 로 감싼다. 그것이 없는 브라우저에서 summary 를 숨기면 **메뉴가
+   통째로 사라진다** — 지원되면 펴고, 안 되면 summary 가 남아 눌러서 연다. */
+.site-nav__details { margin: 0; }
+
+.site-nav__details > summary {
+  cursor: pointer;
+  font-size: var(--wp--preset--font-size--meta);
+  letter-spacing: var(--wp--custom--letter-spacing--meta);
+  text-transform: uppercase;
+  color: var(--wp--preset--color--ink);
+}
+
+.site-nav__details > summary:focus-visible {
+  outline: 2px solid var(--wp--preset--color--ink);
+  outline-offset: 4px;
+}
+
+.site-nav__details > .site-nav__list { margin-top: var(--wp--preset--spacing--20); }
+
+@media (min-width: 48em) {
+  @supports selector(::details-content) {
+    .site-nav__details > summary { display: none; }
+    .site-nav__details::details-content { content-visibility: visible; }
+    .site-nav__details > .site-nav__list { margin-top: 0; }
+  }
+}
+
+/* -- FAQ · 예약 안내 (PR 8) --------------------------------------------
+   FAQ 도 <details> 다 — 헤더 내비와 같은 기법이고, 여기서는 데스크톱에서도 접힌 채로
+   두므로 ::details-content 를 안 건드린다. 애니메이션이 없어서
+   prefers-reduced-motion 과 애초에 무관하다. */
+.faq__item {
+  border-top: 1px solid var(--wp--custom--color--line);
+  padding: var(--wp--preset--spacing--30) 0;
+  margin: 0;
+}
+
+.faq__item > summary {
+  cursor: pointer;
+  font-family: var(--wp--preset--font-family--display);
+  font-size: var(--wp--custom--font-size--card);
+}
+
+.faq__item > summary:focus-visible {
+  outline: 2px solid var(--wp--preset--color--ink);
+  outline-offset: 4px;
+}
+
+.faq__item p {
+  margin: var(--wp--preset--spacing--20) 0 0;
+  color: var(--wp--preset--color--ink-soft);
+}
+
+.booking-note { color: var(--wp--preset--color--ink-soft); }

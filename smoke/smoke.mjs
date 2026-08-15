@@ -5,6 +5,7 @@ import { ROUTES, EXPECTED_ROUTE_COUNT } from "./routes.mjs";
 import { muPluginLoaded } from "./db.mjs";
 import { extractImageUrls } from "./assets.mjs";
 import { checkContactSubmission } from "./contact.mjs";
+import { checkInquiryCaps } from "./caps.mjs";
 
 // DB 레코드가 있다고 파일이 서는 게 아니다 — 저널 대표 이미지가 그렇게 깨졌었다
 // (SEED-EXISTS-DECIDE). 200만으로는 "이미지 URL을 0개 모으고 통과"하는 구멍이 남아
@@ -119,6 +120,41 @@ async function checkContactForm() {
   return failures;
 }
 
+/**
+ * PR 8 이 넣은 절이 응답에 있는지 본다. 새 라우트가 아니라 **기존 라우트 안의 절**이라
+ * 라우트 표로는 안 잡힌다 — 개수 단언이 안 바뀌는 것이 그 뜻이다.
+ */
+async function checkSections() {
+  const failures = [];
+  const WANTED = [
+    ["/contact/", 'id="faq"', "자주 묻는 것"],
+    ["/contact/", 'id="visit"', "오시는 길"],
+    ["/individuals/", 'id="booking"', "예약 안내 자리"],
+    ["/organizations/", "booking-note", "예약 안내 자리"],
+  ];
+
+  for (const [path, needle, label] of WANTED) {
+    const { status, body } = await fetchHtml(path);
+    if (status !== 200) {
+      failures.push(`${path} 가 HTTP ${status} 다 — ${label} 을 볼 수 없다.`);
+      continue;
+    }
+    if (!body.includes(needle)) {
+      failures.push(`${path} 에 ${label}(${needle}) 이 없다.`);
+    }
+  }
+
+  // FAQ 는 <details> 다. JS 없이 열리는 것이 이 선택의 이유라, 태그 자체를 확인한다.
+  const { body } = await fetchHtml("/contact/");
+  const details = [...body.matchAll(/<details[^>]*class="[^"]*faq__item/g)];
+  if (details.length < 3) {
+    failures.push(`/contact/ 의 FAQ 항목이 ${details.length}개다 — <details> 로 안 나왔을 수 있다.`);
+  }
+
+  if (failures.length === 0) console.log("OK  절 — FAQ · 오시는 길 · 예약 자리");
+  return failures;
+}
+
 async function checkMuPlugin() {
   // L3 은 자리만 확인한다 — 뮤플러그인이 pre_wp_mail 을 걸었는지만 본다.
   // 폼과 엮는 것은 PR 7 의 일이다 (PR2-SMOKE §3).
@@ -182,6 +218,8 @@ async function main() {
 		...(await checkAssets()),
 		...(await checkContactForm()),
 		...(await checkContactSubmission()),
+		...checkInquiryCaps(),
+		...(await checkSections()),
 	];
 
   if (failures.length > 0) {

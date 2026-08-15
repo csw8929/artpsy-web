@@ -468,3 +468,147 @@ describe("폼 처리 (PR 7) — L1. 도는지는 smoke 가 본다", () => {
     });
   });
 });
+
+describe("PR 8 — FAQ · 오시는 길 · 예약 · 모바일 내비", () => {
+  const contact = read("../theme/artpsy/templates/page-contact.html");
+  const individuals = read("../theme/artpsy/templates/page-individuals.html");
+  const organizations = read("../theme/artpsy/templates/page-organizations.html");
+  const header = read("../theme/artpsy/parts/header.html");
+  const css = read("../theme/artpsy/style.css");
+  const functionsPhp = read("../theme/artpsy/functions.php");
+  const smoke = read("../smoke/smoke.mjs");
+  const caps = read("../smoke/caps.mjs");
+
+  describe("FAQ — /contact/ 에 있다 (요구사항이 자리를 못 박았다)", () => {
+    it("절이 있다", () => {
+      expect(contact).toContain('"anchor":"faq"');
+      expect(contact).toContain('id="faq"');
+    });
+
+    it("<details> 다 — JS 0줄이고 열림 상태가 브라우저 것이다", () => {
+      const items = [...contact.matchAll(/<details class="wp-block-details faq__item">/g)];
+      expect(items.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it("모르는 것을 아는 것처럼 안 적었다", () => {
+      // 가격·소요 시간은 우리가 모른다. 공개 포트폴리오에서 그럴듯한 가짜가 제일 나쁘다.
+      const faq = contact.slice(contact.indexOf('id="faq"'), contact.indexOf('id="visit"'));
+      expect(faq).toContain("아직 정해지지 않았습니다");
+      expect(faq).not.toMatch(/\d+\s*(원|만원|분|시간)/);
+    });
+
+    it("자리표시자라는 것을 페이지가 말한다 — 주석이 아니다", () => {
+      const faq = contact.slice(contact.indexOf('id="faq"'), contact.indexOf('id="visit"'));
+      expect(faq).toContain("자리표시자입니다");
+    });
+  });
+
+  describe("오시는 길 — 주소를 만들지 않는다", () => {
+    it("절이 있다", () => {
+      expect(contact).toContain('id="visit"');
+    });
+
+    it("주소·전화·지도가 없다", () => {
+      // 우리가 가진 것은 "서울 송파구" 하나뿐이고 그건 클라이언트 소재지이지
+      // 상담 공간 주소가 아니다.
+      const visit = contact.slice(contact.indexOf('id="visit"'));
+      expect(visit).not.toMatch(/\d+-\d+/); // 번지·전화
+      expect(visit).not.toMatch(/<iframe|map\.naver|maps\.google/);
+      expect(visit).toContain("아직 정해지지 않았습니다");
+    });
+
+    it("지도를 나중에 정한다는 것이 적혀 있다 — 외부 스크립트를 모르는 채로 안 들인다", () => {
+      expect(contact).toContain("외부 스크립트");
+    });
+  });
+
+  describe("네이버 예약 — 아웃링크만. 가짜 URL 을 안 만든다", () => {
+    for (const [name, html] of [["individuals", individuals], ["organizations", organizations]]) {
+      it(`${name} 에 예약 안내 자리가 있다`, () => {
+        expect(html).toContain("booking-note");
+        expect(html).toContain("네이버 예약");
+      });
+
+      it(`${name} 에 가짜 예약 URL 이 없다`, () => {
+        expect(html).not.toMatch(/booking\.naver\.com|m\.booking\.naver/);
+      });
+    }
+
+    it("새 탭으로 열린다는 것을 문장이 알린다", () => {
+      // 라벨이 알리지 않으면 새 탭은 놀람이 된다.
+      expect(individuals).toContain("새 탭");
+    });
+  });
+
+  describe("모바일 내비 — <details>. JS 0줄", () => {
+    it("내비가 core/details 로 감싸여 있다", () => {
+      expect(header).toContain('"className":"site-nav__details"');
+      expect(header).toContain("<details class=\"wp-block-details site-nav__details\"><summary>");
+    });
+
+    it("기본이 닫힘이다 — showContent 를 안 켠다", () => {
+      const details = header.slice(header.indexOf('"className":"site-nav__details"'));
+      expect(details.slice(0, 200)).not.toContain('"showContent":true');
+      expect(details.slice(0, 300)).not.toMatch(/<details[^>]*\bopen\b/);
+    });
+
+    it("데스크톱은 ::details-content 로 편다", () => {
+      // details:not([open]) > *:not(summary) { display: block } 은 Chrome 138 에서
+      // 안 먹는다 (실측: details 높이 18 그대로). 지금 여는 방법은 이것뿐이다.
+      expect(css).toContain("::details-content");
+      expect(css).toContain("content-visibility: visible");
+    });
+
+    it("@supports 로 감쌌다 — 없으면 메뉴가 통째로 사라진다", () => {
+      // 지원 안 되는 브라우저에서 summary 를 숨기면 내비에 닿을 방법이 없어진다.
+      //
+      // 주석을 먼저 지운다. 이 파일은 규칙을 설명하는 주석에 같은 이름을 적어 두므로,
+      // 안 지우면 주석의 첫 등장을 규칙으로 읽고 엉뚱한 곳을 본다 (실제로 그랬다).
+      const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
+      // 규칙 쪽을 찾는다. `::details-content` 만으로 찾으면 @supports 조건 자체가
+      // 첫 등장이라 "그 앞 300자" 가 조건보다 위를 보게 된다 (실제로 그랬다).
+      const at = rules.indexOf(".site-nav__details::details-content");
+      expect(at).toBeGreaterThan(-1);
+      expect(rules.slice(Math.max(0, at - 300), at)).toContain("@supports selector(::details-content)");
+    });
+
+    it("summary 를 숨기는 것이 그 @supports 안에 있다", () => {
+      const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
+      const guard = rules.indexOf("@supports selector(::details-content)");
+      const block = rules.slice(guard, guard + 400);
+      expect(block).toContain(".site-nav__details > summary { display: none; }");
+    });
+  });
+
+  describe("문의 권한 (INQUIRY-CAPS 나)", () => {
+    it("capabilities 를 manage_options 로 매핑한다", () => {
+      expect(functionsPhp).toMatch(/'edit_posts'\s*=>\s*'manage_options'/);
+      expect(functionsPhp).toMatch(/'read_private_posts'\s*=>\s*'manage_options'/);
+    });
+
+    it("전용 capability_type 을 안 쓴다 — 활성화 훅에서 역할을 고치면 DB 상태가 남는다", () => {
+      expect(functionsPhp).not.toMatch(/add_cap\(|->add_cap/);
+    });
+
+    it("smoke 가 실제 계정으로 잰다 — 역할표를 외워서 쓰지 않는다", () => {
+      expect(smoke).toContain("checkInquiryCaps");
+      expect(caps).toContain("wp_insert_user");
+      expect(caps).toContain("user_can(");
+    });
+
+    it("닫는 쪽과 여는 쪽을 같이 잰다 — 전부 막고 통과하는 구멍을 막는다", () => {
+      expect(caps).toContain("EDITOR_LIST");
+      expect(caps).toContain("ADMIN_LIST");
+    });
+
+    it("만든 계정을 지운다 — 확인이 상태를 남기지 않는다", () => {
+      expect(caps).toContain("wp_delete_user");
+    });
+  });
+
+  describe("라우트 개수는 안 바뀐다 (카드 §6)", () => {
+    it("새 라우트가 없다 — 절은 기존 페이지 안에 있다", () => {
+      expect(EXPECTED_ROUTE_COUNT).toBe(12);
+    });
+  });
+});
