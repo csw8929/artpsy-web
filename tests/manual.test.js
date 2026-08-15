@@ -207,22 +207,44 @@ describe("smoke 가 실제로 열어 본다 (PR12-MANUAL §6)", () => {
   });
 });
 
-describe("크레딧을 누가 고치는지 적었다", () => {
-  // 매뉴얼이 편집자에게 "저장소의 파일을 고치세요" 라고 적으면, **그 독자는 그걸 할 수
-  // 없다** — §1 이 편집자를 관리자 화면 권한만 있는 사람으로 정의한다. tester 가 짚은
-  // 자리이고, journal-01 의 표기가 잘린 채 화면에 실렸던 원인이 정확히 이 구조다.
-  it("화면은 편집자가 고친다고 적혀 있다", () => {
-    expect(manual).toContain("화면의 크레딧은 편집자가 고칩니다");
+describe("크레딧을 누가 고칠 수 있는지 적었다", () => {
+  // 매뉴얼이 편집자에게 "저장소의 파일을 고치세요" 라고 적으면 **그 독자는 못 한다** —
+  // §1 이 편집자를 관리자 화면 권한만 있는 사람으로 정의한다.
+  //
+  // 첫 고침에서 나는 "화면은 편집자가 고친다" 로 뭉갰는데 **그것도 틀렸다.** 히어로 크레딧은
+  // 푸터 파트이고 메인 썸네일 캡션은 템플릿이라 **사이트 편집기 권한(edit_theme_options)이
+  // 필요하고, editor 는 그것을 안 갖는다**(실측). 편집자가 실제로 고칠 수 있는 것은
+  // 저널 글의 대표 이미지 캡션 하나뿐이다.
+  it("자리마다 누가 고치는지를 가른다 — 뭉치면 셋 중 둘이 틀린다", () => {
+    expect(manual).toContain("누가 고칠 수 있나");
+    expect(manual).toContain("사이트 편집기 권한이 필요합니다");
+    expect(manual).toMatch(/대표 이미지 캡션 \| \*\*편집자\*\*/);
   });
 
-  it("CREDITS.md 는 저장소 권한이 필요하다는 것과 없을 때 무엇을 하는지 적혀 있다", () => {
-    expect(manual).toContain("저장소 접근 권한이 있는 사람만");
-    expect(manual).toContain("개발자에게");
+  it("표시 의무를 약하게 안 적었다 — 권장이 아니라 의무다", () => {
+    expect(manual).toContain("바꾸기 전에");
+    expect(manual).toContain("라이선스 위반");
+    expect(manual).not.toMatch(/가급적|되도록|권장합니다/);
   });
 
-  it("갈라졌을 때 어느 쪽이 맞는지 적혀 있다", () => {
-    // 안 적으면 편집자가 개발자 회신을 기다리는 동안 무엇을 믿을지 모른다.
-    expect(manual).toContain("화면에 보이는 것이 맞는 값");
+  it("갈라졌을 때가 실제로 있었다는 것을 적었다", () => {
+    expect(manual).toContain("잘린 값이 그대로 화면에 실렸습니다");
+  });
+
+  it("안 되는 것 목록에도 있다 — 결함이 아니라 현재 경계다", () => {
+    const section = manual.slice(manual.indexOf("## 10. 지금 없는 기능"));
+    expect(section).toContain("이미지 크레딧을 관리 화면에서 고칠 수 없습니다");
+  });
+
+  it("§1 과 §7 이 안 부딪힌다", () => {
+    // 고친 절만 보지 않는다 — 두 절을 나란히 읽는다 (MANUAL-CREDITS-GAP §3).
+    const roles = manual.slice(manual.indexOf("## 1. 로그인과 역할"), manual.indexOf("## 2."));
+    const credits = manual.slice(manual.indexOf("## 7."), manual.indexOf("## 8."));
+
+    // §1 은 편집자가 못 보는 것을 적는다. §7 이 그 편집자에게 시키는 일은
+    // "미디어 캡션" 과 "개발자에게 알리기" 뿐이어야 한다.
+    expect(roles).toContain("볼 수 없는 것");
+    expect(credits).not.toMatch(/편집자[^\n]*(푸터|저장소|CREDITS\.md)[^\n]*고칩니다/);
   });
 });
 

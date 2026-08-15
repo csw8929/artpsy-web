@@ -112,6 +112,16 @@ export async function checkManual() {
         failures.push("편집자가 팝업 설정 화면을 연다 — 매뉴얼은 못 본다고 적었다.");
       }
 
+      // 매뉴얼 §7 이 "히어로 크레딧은 사이트 편집기 권한이 필요하다" 고 적었다.
+      // 그 주장이 화면에서도 참인지 본다 — 아니면 편집자가 고칠 수 있는데 못 한다고
+      // 적어 둔 것이 되고, 그건 반대 방향으로 틀린 문서다.
+      const siteEditor = await open("/wp-admin/site-editor.php", editorCookie);
+      if (siteEditor.status !== 403) {
+        failures.push(
+          `편집자가 사이트 편집기에서 HTTP ${siteEditor.status} 를 받는다 — 매뉴얼은 권한이 필요하다고 적었다.`,
+        );
+      }
+
       // 대시보드는 열리되 위젯이 없어야 한다.
       const dashboard = await open("/wp-admin/index.php", editorCookie);
       if (dashboard.status === 200 && dashboard.body.includes("artpsy — 문의와 방문")) {
