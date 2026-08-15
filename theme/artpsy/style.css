@@ -472,3 +472,27 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
   outline: 2px solid var(--wp--preset--color--ink);
   outline-offset: 4px;
 }
+
+/* -- 폼 상태 (PR 7) ----------------------------------------------------
+   에러 색이 accent 다. 이 팔레트에 빨강이 없고, 없는 색을 리터럴로 하나 들이면
+   theme.json 과 두 벌이 된다 — 색은 전부 프리셋에서 나온다는 규칙이 그 자리에서 깨진다.
+   대신 색만으로 알리지 않는다: aria-invalid 와 문장이 같이 붙는다. */
+.contact-form__error {
+  display: block;
+  margin-top: var(--wp--preset--spacing--10);
+  font-size: var(--wp--preset--font-size--meta);
+  color: var(--wp--preset--color--accent);
+}
+
+.contact-form__sent {
+  margin: 0 0 var(--wp--preset--spacing--30);
+  padding-bottom: var(--wp--preset--spacing--20);
+  border-bottom: 1px solid var(--wp--custom--color--line);
+}
+
+/* 편집 화면에서만 보이는 문단이다. 프런트에서는 렌더가 갈아끼워 사라진다 —
+   그런데 캔버스도 같은 시트를 보므로(add_editor_style) 여기서 모양을 정한다. */
+.contact-form__hint {
+  margin: 0;
+  color: var(--wp--preset--color--ink-faint);
+}
