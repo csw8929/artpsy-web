@@ -8,7 +8,7 @@
 // 자산마다 다섯을 따로 본다. "크레딧 문단이 있다"로 세면 라이선스 링크만 빠져도 통과한다.
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
-import { PAGES, pathOf } from "../smoke/pages.mjs";
+import { NAV_PAGES, pathOf } from "../smoke/pages.mjs";
 
 const read = (relative) => readFileSync(new URL(relative, import.meta.url), "utf8");
 
@@ -67,7 +67,9 @@ describe("내비게이션 — DB 상태를 만들지 않는다", () => {
   // 슬러그의 정본은 smoke/pages.mjs 다. PR-3 에서는 이 파일이 표를 들고 있었는데,
   // PR-4 가 같은 다섯을 템플릿·라우트·시드에서도 쓰게 되면서 네 곳이 됐다.
   // 두 곳에 적으면 갈리고, 갈린 쪽이 어디인지는 아무도 안 본다 (PR4-PAGES §1).
-  const NAV = PAGES.map((page) => [pathOf(page), page.label]);
+  // NAV_PAGES 다. PAGES 는 PR 6 부터 내비 밖 페이지(처리방침)를 포함하고, 그것을 그대로
+  // 쓰면 헤더에 여섯째 항목이 생겨야 통과하게 된다 (PR6-CONTACT-FORM §2).
+  const NAV = NAV_PAGES.map((page) => [pathOf(page), page.label]);
 
   for (const [href, label] of NAV) {
     it(`${label} → ${href}`, () => {

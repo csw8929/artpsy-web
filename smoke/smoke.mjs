@@ -73,6 +73,37 @@ async function checkRoutes() {
   return failures;
 }
 
+/**
+ * 문의 폼이 **응답에** 있는지 본다. 템플릿에 있는지가 아니다 — nonce 는 서버가 요청마다
+ * 내므로 정적 파일에는 없고, 파일을 보는 단언으로는 "주입이 실제로 돌았나" 를 못 잡는다
+ * (PR6-CONTACT-FORM §3·§7).
+ *
+ * 동의 체크박스의 required 도 여기서 본다. 브라우저가 막는 것으로 끝내지 않는 것은
+ * PR 7 이지만, 막을 표시가 응답에 붙어 있는지는 지금 잴 수 있다.
+ */
+async function checkContactForm() {
+  const failures = [];
+  const { status, body } = await fetchHtml("/contact/");
+
+  if (status !== 200) return [`/contact/ 가 HTTP ${status} 다 — 폼을 볼 수 없다.`];
+
+  if (!/<form[^>]*method="post"/.test(body)) {
+    failures.push("/contact/ 에 <form method=post> 가 없다 — 렌더 주입이 안 돌았다.");
+  }
+
+  const nonce = body.match(/name="artpsy_contact_nonce"[^>]*value="([^"]+)"/);
+  if (!nonce) {
+    failures.push("/contact/ 에 nonce 필드가 없다 — 값이 있어야 PR 7 의 반증이 성립한다.");
+  }
+
+  if (!/id="artpsy-consent"[^>]*required/.test(body)) {
+    failures.push("/contact/ 의 동의 체크박스에 required 가 없다.");
+  }
+
+  if (failures.length === 0) console.log("OK  문의 폼 — form · nonce · 동의 required");
+  return failures;
+}
+
 async function checkMuPlugin() {
   // L3 은 자리만 확인한다 — 뮤플러그인이 pre_wp_mail 을 걸었는지만 본다.
   // 폼과 엮는 것은 PR 7 의 일이다 (PR2-SMOKE §3).
@@ -130,7 +161,12 @@ async function main() {
     );
   }
 
-  const failures = [...(await checkRoutes()), ...(await checkMuPlugin()), ...(await checkAssets())];
+  const failures = [
+		...(await checkRoutes()),
+		...(await checkMuPlugin()),
+		...(await checkAssets()),
+		...(await checkContactForm()),
+	];
 
   if (failures.length > 0) {
     console.error("\n실패:");

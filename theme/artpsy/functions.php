@@ -324,3 +324,81 @@ add_filter(
 	10,
 	2
 );
+
+/**
+ * 문의 폼을 렌더 시점에 주입한다. **템플릿에 담을 수 없기 때문이다** — nonce 는 서버가
+ * 요청마다 내고, 블록 템플릿은 정적 파일이라 리터럴로 적을 자리가 없다. 적어 두면
+ * 그 값이 굳어서 "nonce 없이 POST 하면 안 들어간다" 를 잴 수 없게 된다.
+ *
+ * 히어로의 <picture> 주입(위)과 같은 기법이다 — 표식 클래스를 가진 빈 블록을 자리로 두고
+ * 그 안을 렌더에서 채운다. 커스텀 블록이나 숏코드로도 되는데 안 골랐다: 커스텀 블록은
+ * 빌드 산출물이 하나 더 늘고, 숏코드는 편집자가 지울 수 있는 텍스트가 된다. 빈 그룹은
+ * templateLock 으로 잠기고 이미 이 파일에 같은 형태가 있다.
+ *
+ * JS 없이 선다. <form method="post"> 하나이고 제출에 스크립트가 끼지 않는다 —
+ * 이 테마의 "JS 실패가 백지가 되면 안 된다" 가 여기서는 "JS 없이도 보내진다" 다.
+ *
+ * 받는 것은 셋뿐이다(이름·이메일·문의 내용). 처리방침 동의는 required 로 두는데,
+ * **브라우저가 막는 것으로 끝내지 않는다** — 서버에서 다시 보는 것은 PR 7 이다.
+ */
+function artpsy_contact_form_html() {
+	$fields = array(
+		array( 'artpsy_name', 'text', '이름', 'name', 80 ),
+		array( 'artpsy_email', 'email', '회신 받을 이메일', 'email', 160 ),
+	);
+
+	$html = '<form class="contact-form__form" method="post" action="">';
+	$html .= wp_nonce_field( 'artpsy_contact', 'artpsy_contact_nonce', true, false );
+	$html .= '<input type="hidden" name="artpsy_contact" value="1" />';
+
+	foreach ( $fields as list( $name, $type, $label, $autocomplete, $maxlength ) ) {
+		$id    = str_replace( '_', '-', $name );
+		$html .= '<p class="contact-form__field">'
+			. '<label for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label>'
+			. '<input id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '"'
+			. ' type="' . esc_attr( $type ) . '" maxlength="' . (int) $maxlength . '"'
+			. ' autocomplete="' . esc_attr( $autocomplete ) . '" required />'
+			. '</p>';
+	}
+
+	$html .= '<p class="contact-form__field">'
+		. '<label for="artpsy-message">문의 내용</label>'
+		. '<textarea id="artpsy-message" name="artpsy_message" rows="6" maxlength="2000" required></textarea>'
+		. '</p>';
+
+	$html .= '<p class="contact-form__consent">'
+		. '<input id="artpsy-consent" name="artpsy_consent" type="checkbox" value="1" required />'
+		. '<label for="artpsy-consent">'
+		. '<a class="link" href="/privacy/">개인정보 처리방침</a>을 읽었고 위 항목의 수집·이용에 동의합니다.'
+		. '</label>'
+		. '</p>';
+
+	$html .= '<p class="contact-form__submit"><button type="submit" class="link">보내기</button></p>';
+	$html .= '</form>';
+
+	return $html;
+}
+
+add_filter(
+	'render_block',
+	function ( $content, $block ) {
+		if ( 'core/group' !== ( $block['blockName'] ?? '' ) ) {
+			return $content;
+		}
+
+		$classes = preg_split( '/\s+/', $block['attrs']['className'] ?? '', -1, PREG_SPLIT_NO_EMPTY );
+		if ( ! in_array( 'contact-form', $classes, true ) ) {
+			return $content;
+		}
+
+		// 두 번 넣지 않는다. 필터가 중첩으로 돌 여지를 남기지 않는다.
+		if ( false !== strpos( $content, 'contact-form__form' ) ) {
+			return $content;
+		}
+
+		return preg_replace( '#</div>\s*$#', artpsy_contact_form_html() . '</div>', $content, 1 );
+	},
+	10,
+	2
+);
+

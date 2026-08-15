@@ -5,7 +5,7 @@
 // 대조한다 — 두 곳에 적으면 갈리고, 갈린 쪽이 어디인지는 아무도 안 본다 (PR4-PAGES §1).
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
-import { PAGES, pathOf, templateOf, markerOf } from "../smoke/pages.mjs";
+import { PAGES, NAV_PAGES, pathOf, templateOf, markerOf } from "../smoke/pages.mjs";
 import { ROUTES, EXPECTED_ROUTE_COUNT } from "../smoke/routes.mjs";
 
 const read = (relative) => readFileSync(new URL(relative, import.meta.url), "utf8");
@@ -13,10 +13,18 @@ const themeJson = JSON.parse(read("../theme/artpsy/theme.json"));
 const index = read("../theme/artpsy/templates/index.html");
 
 describe("페이지 다섯", () => {
-  it("다섯이다", () => {
+  // 이 수 둘이 PR 6 에서 갈렸다. 그전에는 "요구사항의 다섯" 과 "시드할 다섯" 이 같은
+  // 값이었는데, 처리방침이 템플릿·시드는 필요하고 헤더에는 안 뜨면서 달라졌다.
+  // 하나로 합치면 다음에 내비 밖 페이지가 하나 더 늘 때 조용히 통과한다.
+  it("내비에 뜨는 것이 다섯이다", () => {
     // 요구사항 §기능 범위의 PHILOSOPHY · INDIVIDUALS / ORGANIZATIONS · CONTACT ·
-    // Learning Center 다. 늘리려면 요구사항 쪽에 근거가 있어야 한다.
-    expect(PAGES).toHaveLength(5);
+    // Learning Center 다. **이 수는 안 변한다** — 늘리려면 요구사항 쪽에 근거가 있어야 한다.
+    expect(NAV_PAGES).toHaveLength(5);
+  });
+
+  it("시드할 것이 여섯이다 — 내비 밖에 처리방침이 있다", () => {
+    expect(PAGES).toHaveLength(6);
+    expect(PAGES.filter((page) => !page.inNav).map((page) => page.slug)).toEqual(["privacy"]);
   });
 
   it("슬러그가 겹치지 않는다", () => {
@@ -165,5 +173,106 @@ describe("시드 — 템플릿 파일만으로는 URL 이 안 생긴다", () => 
 
   it("테마가 콘텐츠를 만들지 않는다 — 산출물은 테마이고 페이지는 고객의 것이다", () => {
     expect(read("../theme/artpsy/functions.php")).not.toContain("wp_insert_post");
+  });
+});
+
+describe("문의 폼 (PR 6) — 마크업까지. 동작은 PR 7 이다", () => {
+  const contact = read("../theme/artpsy/templates/page-contact.html");
+  const organizations = read("../theme/artpsy/templates/page-organizations.html");
+  const privacy = read("../theme/artpsy/templates/page-privacy.html");
+  const footer = read("../theme/artpsy/parts/footer.html");
+  const functionsPhp = read("../theme/artpsy/functions.php");
+
+  it("폼이 템플릿에 리터럴로 없다 — nonce 를 서버가 낸다", () => {
+    // 정적 파일에 nonce 를 적어 두면 그 값이 굳고, "nonce 없이 POST 하면 안 들어간다"
+    // (PR 7 의 판정 4)를 잴 수 없게 된다.
+    expect(contact).not.toMatch(/<form/);
+    expect(contact).not.toContain("_wpnonce");
+    expect(contact).toContain('"className":"contact-form"');
+  });
+
+  it("자리가 잠겨 있다 — 편집자가 안을 채우면 주입한 폼과 겹친다", () => {
+    const slot = contact.slice(contact.indexOf('"className":"contact-form"') - 40);
+    expect(slot.slice(0, 200)).toContain('"templateLock":"all"');
+  });
+
+  it("렌더에서 주입한다 — 히어로 <picture> 와 같은 기법이다", () => {
+    expect(functionsPhp).toContain("artpsy_contact_form_html");
+    expect(functionsPhp).toMatch(/wp_nonce_field\(\s*'artpsy_contact'/);
+    expect(functionsPhp).toMatch(/in_array\(\s*'contact-form',\s*\$classes,\s*true\s*\)/);
+  });
+
+  it("두 번 넣지 않는다", () => {
+    expect(functionsPhp).toMatch(/strpos\(\s*\$content,\s*'contact-form__form'\s*\)/);
+  });
+
+  it("JS 가 안 낀다 — <form method=post> 하나로 선다", () => {
+    // 이 테마의 "JS 실패가 백지가 되면 안 된다" 가 여기서는 "JS 없이도 보내진다" 다.
+    const form = functionsPhp.slice(functionsPhp.indexOf("function artpsy_contact_form_html"));
+    expect(form.slice(0, 3000)).toContain('method="post"');
+    expect(form.slice(0, 3000)).not.toMatch(/onsubmit|addEventListener|fetch\(/);
+  });
+
+  it("받는 것이 셋뿐이다 — 처리방침에 적은 것과 같아야 한다", () => {
+    // 이름이 하나 늘면 처리방침의 "수집하는 항목" 과 갈린다. 갈린 쪽은 화면에 안 보인다.
+    const start = functionsPhp.indexOf("function artpsy_contact_form_html");
+    const form = functionsPhp.slice(start, functionsPhp.indexOf("add_filter", start));
+    const names = [...form.matchAll(/'(artpsy_[a-z_]+)'/g)].map((m) => m[1]);
+    expect([...new Set(names)].sort()).toEqual([
+      "artpsy_contact", // 제출 표식 (hidden)
+      "artpsy_contact_nonce",
+      "artpsy_email",
+      "artpsy_name",
+    ]);
+    // 배열 밖에 리터럴로 있는 둘.
+    expect(form).toContain('name="artpsy_message"');
+    expect(form).toContain('name="artpsy_consent"');
+    expect(form).not.toMatch(/name="artpsy_(?!name|email|message|consent|contact")/);
+  });
+
+  it("동의 체크박스가 required 다", () => {
+    const form = functionsPhp.slice(functionsPhp.indexOf("artpsy_consent"));
+    expect(form.slice(0, 400)).toContain("required");
+  });
+
+  it("동의 라벨이 처리방침으로 간다", () => {
+    expect(functionsPhp).toContain('href="/privacy/"');
+  });
+
+  it("푸터에 처리방침 링크가 있다", () => {
+    expect(footer).toContain('href="/privacy/"');
+  });
+
+  it("처리방침이 자리표시자라고 페이지에 적혀 있다 — 주석이 아니다", () => {
+    // 공개된 포트폴리오다. 그럴듯한 가짜 처리방침이 제일 나쁘다.
+    expect(privacy).toContain("자리표시자");
+    expect(privacy).toMatch(/미정/);
+  });
+
+  it("처리방침에 없는 사실을 안 적었다", () => {
+    // 실제 값이 없는데 있는 것처럼 읽히는 것이 자리표시자보다 나쁘다.
+    for (const word of ["사업자등록번호", "대표자", "전화"]) {
+      expect(privacy).not.toContain(word);
+    }
+  });
+
+  it("폼이 한 곳뿐이다 — /organizations/#inquiry 에는 없다", () => {
+    // 폼이 둘이면 PR 7 의 판정(행이 정확히 하나 는다)이 어느 폼인지 모르게 된다
+    // (PR4-ACK §4).
+    const section = organizations.slice(organizations.indexOf('id="inquiry"'));
+    expect(section).not.toMatch(/<form|<input|<textarea/);
+    expect(section).not.toContain('"className":"contact-form"');
+  });
+});
+
+describe("smoke 가 응답을 본다 (PR6-CONTACT-FORM §7)", () => {
+  const smoke = read("../smoke/smoke.mjs");
+
+  it("폼·nonce·동의 required 를 응답에서 확인한다", () => {
+    // 파일을 보는 단언으로는 "주입이 실제로 돌았나" 를 못 잡는다. nonce 는 정적 파일에
+    // 아예 없으므로 응답을 보는 검사가 유일한 길이다.
+    expect(smoke).toContain("checkContactForm");
+    expect(smoke).toContain("artpsy_contact_nonce");
+    expect(smoke).toContain("artpsy-consent");
   });
 });
