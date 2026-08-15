@@ -5,6 +5,9 @@
   "mappings": {
     "wp-content/mu-plugins": "./smoke/mu-plugins"
   },
+  "lifecycleScripts": {
+    "afterStart": "node smoke/seed-pages.mjs"
+  },
   "config": {
     "WP_DEBUG": true,
     "WP_DEBUG_DISPLAY": true,

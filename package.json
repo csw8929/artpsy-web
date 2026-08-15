@@ -11,7 +11,8 @@
     "wp:stop": "wp-env stop",
     "wp:activate": "wp-env run cli wp theme activate artpsy",
     "build:theme": "vite build --config vite.theme.config.js",
-    "smoke": "node smoke/smoke.mjs"
+    "smoke": "node smoke/smoke.mjs",
+    "wp:seed": "node smoke/seed-pages.mjs"
   },
   "keywords": [],
   "author": "",

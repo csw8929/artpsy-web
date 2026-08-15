@@ -276,36 +276,58 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
 .hero__meta p { margin: 0; }
 
 /* -- 사이트 헤더 --------------------------------------------------------
-   히어로 위에 얹는다. 흐름에 넣으면 min-height: 100svh 인 히어로가 그만큼 밀려
-   첫 화면 풀블리드가 깨진다. LCP 조사에서 8px 짜리 흐름 헤더 하나가 LCP 후보를
-   뒤집었고 fixed 는 같은 조작에서 안 뒤집었다 — 기하는 셋 다 같았다. 성능이 이
-   PR 의 판정은 아니지만 공짜로 피할 수 있는 흔들림을 들일 이유가 없다.
+   가로 패딩은 루트 패딩을 그대로 쓴다. 헤더 파트는 .has-global-padding 이 아니라
+   안 맞추면 로고가 페이지 여백과 다른 선에서 시작한다.
 
-   z-index 가 필요하다. .hero 가 position: relative 라 헤더와 같은 층에 그려지고
-   DOM 에서 뒤라 그냥 두면 히어로가 헤더를 덮는다. 히어로 안쪽의 -1 둘
-   (.hero__media · .hero::after)은 .hero 가 스태킹 컨텍스트가 아니라 루트로
-   빠져나가므로 이 값과 겨루지 않는다.
-
-   가로 패딩은 루트 패딩을 그대로 쓴다. 헤더가 흐름 밖이라 .has-global-padding 이
-   안 걸리는데, 안 맞추면 로고가 히어로 콘텐츠와 다른 선에서 시작한다. */
+   PR-3 은 position: fixed 였다. 페이지 다섯이 생기면서 못 쓴다 — 히어로가 없는
+   템플릿에서는 첫 콘텐츠가 헤더 아래로 들어가고, 그것을 여백으로 메우려면 헤더
+   높이가 값으로 있어야 하는데 그 값이 없다. 모바일에서 내비가 두 줄이 되면
+   애초에 높이가 하나가 아니다. 겹침은 아래 .wp-site-blocks 그리드가 맡는다. */
 .site-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
   align-items: baseline;
   gap: var(--wp--preset--spacing--20) var(--wp--preset--spacing--40);
   padding: var(--wp--preset--spacing--30) var(--wp--style--root--padding-right)
     var(--wp--preset--spacing--30) var(--wp--style--root--padding-left);
 }
 
-/* 헤더 파트가 첫 자식이 되면서 <main> 이 두 번째 형제가 된다. 코어가
-   :where(.wp-site-blocks) > * 로 margin-block-start: 24px 를 얹고, 히어로가
-   100svh 라 그 24px 이 그대로 첫 화면을 밀어낸다 — 헤더를 띄운 이유가 사라진다.
-   .grid > * · .hero > * 와 같은 기전이고 같은 형태로 끈다.
-   여기 자식은 헤더·main·푸터 셋뿐이고 셋 다 이 간격에 기대지 않는다 —
-   헤더는 흐름 밖이고 푸터는 자기 패딩을 든다. */
+/* -- 헤더와 본문의 겹침 (PR-4 §3) --------------------------------------
+   .wp-site-blocks 를 그리드로 둔다. **숫자가 한 곳도 안 들어간다.**
+
+     기본 템플릿    헤더 1행 · 본문 2행    본문이 헤더 아래에서 시작한다
+     히어로 템플릿  둘이 같은 칸           겹친다
+
+   헤드리스 1440×900 축소 재현으로 잰 것 (구조만 같게 만든 정적 페이지):
+
+     기본     main.top 66 == header.height 66   여백이 저절로 따라온다
+     겹침     header.top 0 == main.top 0        히어로가 뷰포트를 채운다
+     gap 24   겹침 그대로, 푸터만 24 내려감     gap 은 트랙 사이지 칸 안이 아니다
+
+   align-items: start 가 필수다. 없으면 헤더가 행 높이(히어로의 100svh)만큼 늘어나
+   아래 z-index 와 겹쳐 **히어로 전체가 헤더 박스에 덮인다** — 실측 813 대 66.
+
+   겹치는 쪽을 표식이 명시적으로 고른다. "히어로가 없으면" 같은 부정 조건으로 잡으면
+   새 템플릿이 조용히 맞고, 맞는 것이 옳은지 아무도 안 본다. */
+.wp-site-blocks {
+  display: grid;
+  grid-template-columns: 100%;
+  align-content: start;
+  align-items: start;
+}
+
+/* z-index 만으로 선다 — 그리드 아이템은 position 없이도 z-index 를 받는다.
+   실측: 없으면 y=30 에서 히어로가 잡히고, 10 이면 헤더가 잡힌다. */
+.wp-site-blocks:has(> main.tpl-home) > header {
+  grid-area: 1 / 1;
+  z-index: 10;
+}
+
+.wp-site-blocks:has(> main.tpl-home) > main.tpl-home { grid-area: 1 / 1; }
+
+/* 코어가 :where(.wp-site-blocks) > * 로 margin-block-start: 24px 를 얹는다. 그리드로
+   바꿔도 마진은 그대로 아이템에 붙어서, 겹치는 칸에서는 히어로가 24px 내려가고
+   기본 칸에서는 헤더 아래 간격이 24px 늘어난다.
+   .grid > * · .hero > * 와 같은 기전이고 같은 형태로 끈다. 여기 자식은 헤더·main·
+   푸터 셋뿐이고 셋 다 이 간격에 기대지 않는다 — 간격은 그리드가 정한다. */
 .wp-site-blocks > * { margin-block: 0; }
 
 .site-header__brand {
