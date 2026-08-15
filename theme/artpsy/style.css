@@ -188,7 +188,7 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
 
 /* -- 히어로 미디어 (매핑 §4.2.0 · 설계 §1) ---------------------------
    Phase 1 은 <picture> 가 .hero 의 직계였다. 블록 에디터는 <figure> 로 한 겹 더 감싸므로
-   둘 다 display: contents 로 접어 .hero__media 가 그리드 아이템이 되게 한다 — 그래야
+   둘 다 display: contents 로 접어 <img> 가 그리드 아이템이 되게 한다 — 그래야
    Phase 1 과 같은 배치가 나온다. */
 .hero .hero__media-block,
 .hero picture { display: contents; }
@@ -203,7 +203,14 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
    전역으로 끄면 거기가 무너진다. */
 .hero > * { margin-block: 0; }
 
-.hero__media {
+/* <img> 에 클래스를 못 준다. core/image 의 save() 가 내는 것은 src·alt 뿐이라(첨부가 아니면
+   wp-image-N 도 없다) 저장된 마크업에 class 가 하나라도 있으면 블록이 무효가 되고, 편집자가
+   그 이미지를 클릭하는 순간 "블록 복구"가 떠서 이 걸이가 통째로 날아간다.
+   그래서 구조로 잡는다. figure 의 className 은 코어가 내므로 .hero__media-block 은 유효하다.
+
+   .hero 를 앞에 두는 것이 특정도를 정한다. 코어의 .wp-block-image.alignfull img 가 (0,2,1) 로
+   height: auto 를 걸고 있어서 그것과 같거나 세야 아래 height: 120% 가 산다. */
+.hero .hero__media-block img {
   position: absolute;
   /* main.js 의 yPercent: 12 와 묶여 있다. -10% 는 미디어가 들어갈 여유이고, 120% 높이의
      12% 는 히어로의 14.4% 라 그 여유를 이미 넘는다 — 그 시점에 히어로 상단이 화면 밖으로
@@ -241,7 +248,9 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
 /* -- 저널 썸네일 ------------------------------------------------------- */
 .journal__thumb-block { margin: 0; }
 
-.journal__thumb {
+/* 히어로와 같은 이유로 구조로 잡는다. 여기는 코어와 다투는 선언이 없어서(.wp-block-image img
+   의 height: auto 는 값이 같다) 특정도를 올릴 이유가 없다. */
+.journal__thumb-block img {
   width: 100%;
   height: auto;
   /* 비율을 고정한다. 들쭉날쭉한 그리드가 깨진 것처럼 읽히지 않게, 그리고 더 중요하게는
