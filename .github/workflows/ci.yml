@@ -6,7 +6,11 @@
 # 근거다 — 5회 중 1회 1,932ms / 중앙값 1,288ms. flaky 한 게이트는 두 번째 빨간불부터
 # 무시당한다. 성능 판정은 라운드/Phase 경계에서 tester 가 하네스로 한다.
 #
-# wp-env 도 띄우지 않는다 (운영계획 §4.3). 느리고, 지금 필요한 단언은 전부 정적이다.
+# wp-env 도 띄우지 않는다 (운영계획 §4.3). "느리다"가 실측 없이 적혀 있었는데
+# (PR2-SMOKE §4), 재 보니 그럴 만했다 — 콜드 스타트가 wordpress-develop.git 클론 하나로
+# 20GB(로컬 실측)라 5분을 훨씬 넘긴다. 이미지가 캐시된 웜 스타트는 ~1분이라, "CI 편입 불가"가
+# 아니라 "그 클론을 캐시하지 않고는 불가"가 더 정확한 결론이다 — 지금은 그 캐시가 없다.
+# `npm run smoke`는 로컬/사람이 진다 — PR 템플릿 "L2 도달" 칸.
 name: CI
 
 on:
@@ -52,3 +56,13 @@ jobs:
             git diff -- theme/artpsy/assets | head -40
             exit 1
           fi
+
+      # 판정이 아니라 출력만이다 — exit 1 을 넣지 않는다. 초록 체크가 "성능 확인됨"으로
+      # 읽히면 안 된다는 원칙(위 PERF-OWN-R3)은 그대로다. 다만 안 재면 Phase 4 에서
+      # "어디서 늘었나"를 이분 탐색할 수 없다 — 그래서 회차마다 로그에만 남긴다.
+      - name: theme bundle byte sizes (판정 없음)
+        run: |
+          echo "파일별:"
+          find theme/artpsy/assets -type f -exec du -b {} \; | sort -k2
+          echo "합계:"
+          find theme/artpsy/assets -type f -exec du -b {} \; | awk '{sum += $1} END {print sum " bytes"}'
