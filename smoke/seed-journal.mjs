@@ -89,4 +89,11 @@ try {
 
 process.stdout.write(out);
 
-if (out.includes("FAIL")) process.exitCode = 1;
+// 실패 사유를 stderr 로도 보낸다. wp-env 는 lifecycleScript 가 **실패했을 때 stderr 만**
+// 보여 준다 — stdout 은 스피너 텍스트에 덧쓰이고 사라지며, 성공했을 때는 --debug 에서만
+// 나온다 (@wordpress/env 의 execute-lifecycle-script.js 를 읽어서 확인했다).
+// 그래서 FAIL 을 stdout 에만 두면 `afterStart Error:` 뒤가 빈 채로 뜬다.
+if (out.includes("FAIL")) {
+  process.stderr.write(out.split("\n").filter((line) => line.startsWith("FAIL")).join("\n") + "\n");
+  process.exitCode = 1;
+}
