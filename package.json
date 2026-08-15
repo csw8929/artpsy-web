@@ -12,6 +12,7 @@
     "wp:activate": "wp-env run cli wp theme activate artpsy",
     "build:theme": "vite build --config vite.theme.config.js",
     "smoke": "node smoke/smoke.mjs",
+    "smoke:ax-tree": "node smoke/ax-tree.mjs",
     "wp:seed": "node smoke/seed-pages.mjs && node smoke/seed-journal.mjs"
   },
   "keywords": [],
