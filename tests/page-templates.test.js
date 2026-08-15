@@ -644,8 +644,34 @@ describe("히어로 정렬 (HERO-ALIGN 나)", () => {
   });
 
   it("CLAUDE.md 가 히어로를 닫힌 것으로 적는다", () => {
+    // 저널 쪽 상태는 여기서 안 본다 — JOURNAL-CONSTRAINED 가 그것을 뒤집으면서
+    // 이 단언이 같이 죽었고, 그건 이 단언이 남의 상태를 들고 있었다는 뜻이다.
     const section = claudeMd.slice(claudeMd.indexOf("layout: constrained"));
     expect(section.slice(0, 1200)).toContain("히어로 — 닫혔다");
-    expect(section.slice(0, 1200)).toContain(".journal__item` — 안 닫혔다");
+  });
+});
+
+describe("저널 아이템 정렬 (JOURNAL-CONSTRAINED)", () => {
+  const index = read("../theme/artpsy/templates/index.html");
+  const archive = read("../theme/artpsy/templates/archive-artpsy_journal.html");
+  const claudeMd = read("../CLAUDE.md");
+
+  it("메인의 journal__item 둘이 constrained 가 아니다", () => {
+    // 호스트가 572 인데 자식 셋이 544 였다. 히어로와 같은 기전이고 같은 고침이다.
+    const items = [...index.matchAll(/\{"className":"journal__item","templateLock":"contentOnly","layout":\{"type":"([a-z]+)"\}\}/g)];
+    expect(items).toHaveLength(2);
+    expect(items.map((m) => m[1])).toEqual(["default", "default"]);
+  });
+
+  it("아카이브 쪽은 처음부터 default 였다 — 같이 안 움직인다", () => {
+    expect(archive).toContain('{"className":"journal__item","layout":{"type":"default"}}');
+  });
+
+  it("CLAUDE.md 의 규칙 절은 그대로 두고 불릿만 뒤집었다", () => {
+    // 사례 둘이 다 닫혔다고 절을 지우면 규칙이 다음 사람에게 근거 없는 금지가 된다.
+    expect(claudeMd).toContain("grid/flex 칸 안에 쓰지 않는다");
+    expect(claudeMd).toContain("규칙이 어디서 나왔는지의 기록이지 목록이 아니다");
+    expect(claudeMd).toContain("`.journal__item` — 닫혔다");
+    expect(claudeMd).not.toContain("`.journal__item` — 안 닫혔다");
   });
 });
