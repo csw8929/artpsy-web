@@ -612,3 +612,40 @@ describe("PR 8 — FAQ · 오시는 길 · 예약 · 모바일 내비", () => {
     });
   });
 });
+
+describe("히어로 정렬 (HERO-ALIGN 나)", () => {
+  const index = read("../theme/artpsy/templates/index.html");
+  const claudeMd = read("../CLAUDE.md");
+
+  it("히어로 안쪽 그룹이 constrained 가 아니다", () => {
+    // constrained 는 자식을 contentSize(544)로 가둔다. 히어로는 그리드 칸이 h1 의
+    // max-content(881)로 잡히므로, 그 안에서 eyebrow·메타만 544 가 되어 왼쪽 선이
+    // 279 대 448 로 갈렸다 — 편집자 조작 없이 첫 화면에 보이던 것이다.
+    // `.hero` 섹션 자신의 layout 은 안 건드린다 — 자를 자리를 그 뒤로 잡는다.
+    // 이 PR 이 푸는 것은 **그 안쪽 그룹** 하나다.
+    const inner = index.slice(index.indexOf("<!-- /wp:image -->"), index.indexOf('"className":"eyebrow"'));
+    expect(inner).toContain('{"align":"wide","templateLock":"contentOnly","layout":{"type":"default"}}');
+    expect(inner).not.toContain("constrained");
+  });
+
+  it("881 을 정하는 .hero 는 안 건드렸다 — Phase 1 패리티가 거기 있다", () => {
+    // style.css:113 이 "grid + align-content 가 없으면 h1 이 블록 흐름 폭이 되고 Phase 1 과
+    // 어긋난다(881 vs 1312)" 라고 적어 둔 자리다. 이 PR 은 자식 폭만 푼다.
+    const css = read("../theme/artpsy/style.css");
+    const heroRule = css.slice(css.indexOf(".hero {"), css.indexOf("}", css.indexOf(".hero {")));
+    expect(heroRule).toContain("display: grid");
+    expect(heroRule).toContain("align-content: center");
+  });
+
+  it("CLAUDE.md 가 사례가 아니라 규칙으로 적는다", () => {
+    // 사례를 열거하면 새 사례가 생길 때마다 아무도 못 본다 — 히어로가 그랬다.
+    expect(claudeMd).toContain("grid/flex 칸 안에 쓰지 않는다");
+    expect(claudeMd).toContain("사례를 열거하면");
+  });
+
+  it("CLAUDE.md 가 히어로를 닫힌 것으로 적는다", () => {
+    const section = claudeMd.slice(claudeMd.indexOf("layout: constrained"));
+    expect(section.slice(0, 1200)).toContain("히어로 — 닫혔다");
+    expect(section.slice(0, 1200)).toContain(".journal__item` — 안 닫혔다");
+  });
+});
