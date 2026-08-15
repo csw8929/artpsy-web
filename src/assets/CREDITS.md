@@ -42,6 +42,7 @@ venv/bin/pyftsubset <원본> --text-file=<charset.txt> --output-file=<출력>.su
 - 작가: Bruce Black
 - 라이선스: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0
 - 출처: https://commons.wikimedia.org/wiki/File:%22Codes%22_Abstract_Watercolor_Painting_by_Bruce_Black_(2020).jpg
+- 페이지 표시: `“Codes” (2020), Bruce Black · CC BY-SA 4.0 · 원본을 크롭하고 WebP 로 재인코딩했습니다.`
 
 | 파일 | 바이트 | 크기 | 조건 |
 |---|---:|---|---|
@@ -56,8 +57,8 @@ venv/bin/pyftsubset <원본> --text-file=<charset.txt> --output-file=<출력>.su
 세로본은 3:4 **중앙 크롭**이다. 눈으로 확인하고 중앙을 택했다 — 노란 삼각형은 프레임 밖으로
 나가지만 잘리는 피사체가 없고 원형 모티프가 온전히 들어온다. 0.35 지점은 삼각형을 반으로 자른다.
 
-> CC BY-SA는 **표시 의무**가 있다. 이 파일이 기록을 대신하고 있으나, 실제 배포 시에는
-> 페이지에 보이는 크레딧이 필요하다.
+> CC BY-SA는 **표시 의무**가 있다. `#28`(`99c19ae`)에서 푸터에 실렸다 — 이 파일은 이제
+> 그 표시가 어디서 왔는지의 기록이다.
 
 ## 저널 썸네일 — `img/journal/`
 
@@ -74,14 +75,41 @@ Wikimedia Commons 원본을 **4:3으로 크롭한 뒤 WebP q72**로 재인코딩
 검증을 통과했고, 통과한 품질을 올리자고 모바일 전체 전송량을 1MB 늘리는 것은 과설계다.
 Phase 2에서 WP 코어가 자동 생성하므로 여기서 만든 것은 어차피 버려진다.
 
+사이트 저널 카드에 실제로 쓰는 것은 아래 둘뿐이다(`CREDITS-FIX`). 나머지 22장은 표에만
+남는다 — 페이지에 없으므로 표시 의무가 없고, 표는 그대로 자산 기록이다.
+
+### `journal-01.webp`
+
+- 원제: "Abstrakte Komposition"
+- 작가: Hans Kruzwicki(그림), Dietmar Kruzwicki(사진)
+- 라이선스: GFDL 1.2+ 또는 CC BY 3.0 Unported (이중 라이선스) — **CC BY 3.0을 표시에 쓴다**
+  — https://creativecommons.org/licenses/by/3.0
+- 출처: https://commons.wikimedia.org/wiki/File:%22Abstrakte_Komposition%22_Hans_Kruzwicki.jpg
+- 변경: 크롭 + WebP 재인코딩
+- 페이지 표시: `“Abstrakte Komposition”, Hans Kruzwicki(그림) · Dietmar Kruzwicki(사진) · CC BY 3.0 · 크롭·WebP 재인코딩`
+
+> 이전 값이 표(아래)에서 `…`로 잘려 사진가(Dietmar Kruzwicki) 크레딧이 통째로 빠져
+> 있었다 — CC BY는 지정된 방식의 표시를 요구하므로 실제 미충족이었다(`CREDITS-FIX`).
+> 표에 안 들어가는 값은 표 밖에 둔다.
+
+### `journal-02.webp`
+
+- 원제: "Afterglow" (2005)
+- 작가: Ray L. Burggraf
+- 라이선스: GFDL 1.2+ 또는 CC BY-SA 3.0 Unported (이중 라이선스) — **CC BY-SA 3.0을 표시에 쓴다**
+  — https://creativecommons.org/licenses/by-sa/3.0
+- 출처: https://commons.wikimedia.org/wiki/File:%22Afterglow%22_by_Ray_L._Burggraf,_2005.jpg
+- 변경: 크롭 + WebP 재인코딩
+- 페이지 표시: `“Afterglow” (2005), Ray L. Burggraf · CC BY-SA 3.0 · 크롭·WebP 재인코딩`
+
 | 파일(800w) | 800w 바이트 | 600w 바이트 | 이전(JPEG) | 라이선스 | 출처 |
 |---|---:|---:|---:|---|---|
-| `journal-01.webp` | 47,696 | 29,886 | 315,374 | CC BY 3.0 | [Hans Kruzwicki (painting) User: Dietm…](https://commons.wikimedia.org/wiki/File:%22Abstrakte_Komposition%22_Hans_Kruzwicki.jpg) |
+| `journal-01.webp` | 47,696 | 29,886 | 315,374 | CC BY 3.0 | [Hans Kruzwicki](https://commons.wikimedia.org/wiki/File:%22Abstrakte_Komposition%22_Hans_Kruzwicki.jpg) |
 | `journal-02.webp` | 14,754 | 10,374 | 157,266 | CC BY-SA 3.0 | [Ray Burggraf](https://commons.wikimedia.org/wiki/File:%22Afterglow%22_by_Ray_L._Burggraf,_2005.jpg) |
 | `journal-03.webp` | 134,744 | 82,436 | 754,012 | CC BY-SA 4.0 | [Bruce Black](https://commons.wikimedia.org/wiki/File:%22Balance%22.jpg) |
 | `journal-04.webp` | 72,146 | 35,408 | 372,276 | CC BY-SA 4.0 | [Arte &amp; pintura](https://commons.wikimedia.org/wiki/File:%22Cardenal%22.jpg) |
 | `journal-05.webp` | 94,760 | 57,298 | 381,907 | CC BY-SA 4.0 | [Bruce Black](https://commons.wikimedia.org/wiki/File:%22Codes%22_Abstract_Watercolor_Painting_by_Bruce_Black_(2020).jpg) |
-| `journal-06.webp` | 18,726 | 12,732 | 153,491 | CC BY-SA 3.0 | [Global Microscope / Global Microscope…](https://commons.wikimedia.org/wiki/File:%22Dragon_Breath%22_by_Ray_L._Burggraf.jpg) |
+| `journal-06.webp` | 18,726 | 12,732 | 153,491 | CC BY-SA 3.0 | [Global Microscope](https://commons.wikimedia.org/wiki/File:%22Dragon_Breath%22_by_Ray_L._Burggraf.jpg) |
 | `journal-07.webp` | 94,704 | 44,632 | 608,079 | CC BY 4.0 | [Matti Hyvärinen](https://commons.wikimedia.org/wiki/File:%22Great_Brita%22,_1991.jpg) |
 | `journal-08.webp` | 10,642 | 4,798 | 206,690 | CC BY 3.0 | [Danojocon](https://commons.wikimedia.org/wiki/File:%22Island_Dreaming%22_by_Dano_J_Ocon_2019.jpg) |
 | `journal-09.webp` | 33,876 | 21,886 | 206,531 | CC0 | [Middle river exports](https://commons.wikimedia.org/wiki/File:%22Relay%22_abstract_artwork_by_E._Marc_Treib_along_wall_at_Penn-North_station,_Baltimore_Metro_SubwayLink.jpg) |
@@ -93,7 +121,7 @@ Phase 2에서 WP 코어가 자동 생성하므로 여기서 만든 것은 어차
 | `journal-15.webp` | 87,318 | 52,074 | 408,010 | CC BY-SA 3.0 | [Globetrotter19](https://commons.wikimedia.org/wiki/File:%27Waving%27_glass_composition_by_Janos_Jegenyes,_2016_Szekszard.jpg) |
 | `journal-16.webp` | 41,798 | 27,572 | 147,676 | CC BY-SA 4.0 | [Philippe64](https://commons.wikimedia.org/wiki/File:(c)_Philippe_Ringlet_-_Toile_H-B_250x488_cm_(d%C3%A9tail).jpg) |
 | `journal-17.webp` | 12,692 | 11,440 | 739,105 | CC BY-SA 4.0 | [Irenevideira](https://commons.wikimedia.org/wiki/File:(obra_sem_titulo).jpg) |
-| `journal-18.webp` | 16,206 | 11,514 | 140,908 | CC BY 2.0 | [Rodrigo Paredes from Ciudad Autónoma …](https://commons.wikimedia.org/wiki/File:-056_-_Light_Colors_(25142125302).jpg) |
+| `journal-18.webp` | 16,206 | 11,514 | 140,908 | CC BY 2.0 | [Rodrigo Paredes](https://commons.wikimedia.org/wiki/File:-056_-_Light_Colors_(25142125302).jpg) |
 | `journal-19.webp` | 54,590 | 23,844 | 351,209 | CC BY-SA 4.0 | [Carlos Hernández Marmolejo](https://commons.wikimedia.org/wiki/File:03-mayo-portada._Fanzine_01.jpg) |
 | `journal-20.webp` | 18,550 | 10,096 | 213,361 | CC BY-SA 4.0 | [Carlos Hernández Marmolejo](https://commons.wikimedia.org/wiki/File:03-mayo-portada._Fanzine_02.jpg) |
 | `journal-21.webp` | 48,304 | 24,314 | 368,968 | CC BY-SA 4.0 | [Carlos Hernández Marmolejo](https://commons.wikimedia.org/wiki/File:03-mayo-portada._Fanzine_03.jpg) |
