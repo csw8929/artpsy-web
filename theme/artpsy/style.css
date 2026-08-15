@@ -561,3 +561,59 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
 }
 
 .booking-note { color: var(--wp--preset--color--ink-soft); }
+
+/* -- 메인 팝업 (PR 9) --------------------------------------------------
+   <dialog> 다. 닫기가 <form method="dialog"> 라 **브라우저가 처리한다** — JS 가 죽어도
+   닫힌다. 열기만 JS 가 하고, 못 열리면 아무 일도 안 일어난다.
+
+   비모달(show)이라 ::backdrop 이 없고 페이지를 안 막는다. 위치를 직접 잡는다 —
+   기본 <dialog> 는 화면 중앙에 뜨는데, 이 사이트에서 중앙을 가리는 것은
+   히어로 헤드라인이다.
+
+   등장 연출은 CSS 다. GSAP 을 안 쓴 이유가 "반쯤 열린 상태" 를 안 만들려는 것이고,
+   prefers-reduced-motion 은 위쪽 전역 블록의 transition-duration: 0.01ms 가 이미 끈다 —
+   여기서 다시 안 적는다. */
+.popup {
+  position: fixed;
+  inset: auto var(--wp--style--root--padding-right) var(--wp--preset--spacing--40) auto;
+  max-width: min(28rem, calc(100vw - var(--wp--preset--spacing--40) * 2));
+  margin: 0;
+  padding: var(--wp--preset--spacing--40);
+  border: 1px solid var(--wp--custom--color--line);
+  background: var(--wp--preset--color--paper);
+  color: var(--wp--preset--color--ink);
+  box-shadow: 0 1px 40px color-mix(in srgb, var(--wp--preset--color--ink) 12%, transparent);
+  opacity: 1;
+  transition: opacity var(--wp--custom--motion--duration-fast) var(--wp--custom--motion--ease-out);
+}
+
+@starting-style {
+  .popup[open] { opacity: 0; }
+}
+
+.popup__title {
+  margin: 0 0 var(--wp--preset--spacing--20);
+  font-size: var(--wp--custom--font-size--card);
+}
+
+.popup__body { color: var(--wp--preset--color--ink-soft); }
+
+.popup__body p { margin: 0 0 var(--wp--preset--spacing--20); }
+
+.popup__body p:last-child { margin-bottom: 0; }
+
+.popup__close { margin-top: var(--wp--preset--spacing--30); }
+
+/* .link 의 모양을 그대로 쓰되 button 의 기본값만 지운다 — 문의 폼과 같은 자리다. */
+.popup__close button.link {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  cursor: pointer;
+}
+
+.popup__close button:focus-visible,
+.popup__link a:focus-visible {
+  outline: 2px solid var(--wp--preset--color--ink);
+  outline-offset: 4px;
+}

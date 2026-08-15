@@ -638,3 +638,155 @@ add_filter(
 	2
 );
 
+/**
+ * 메인 팝업. **편집자가 켜고 끄고 내용을 바꾸는 것**이라 마크업이 아니라 옵션에 산다
+ * (요구사항 §백오피스 "사이트 관리(FAQ + 메인 팝업)").
+ *
+ * CPT 를 안 만든다 — 한 벌뿐이고 목록이 필요 없다. 옵션을 하나의 배열로 묶지도 않는다:
+ * 스칼라 다섯이면 `wp option update` 로 켜고 끌 수 있어서 판정이 CLI 로 선다.
+ *
+ * **기본은 꺼짐이다.** 갓 클론한 설치에서 팝업이 뜨면 포트폴리오를 여는 사람이 공지부터
+ * 닫는다 — /privacy/ 와 FAQ 에서 쓴 판단과 같다.
+ */
+const ARTPSY_POPUP_OPTIONS = array(
+	'artpsy_popup_enabled'    => '',
+	'artpsy_popup_title'      => '',
+	'artpsy_popup_body'       => '',
+	'artpsy_popup_link_url'   => '',
+	'artpsy_popup_link_label' => '',
+);
+
+add_action(
+	'admin_init',
+	function () {
+		foreach ( ARTPSY_POPUP_OPTIONS as $name => $default ) {
+			$sanitize = 'artpsy_popup_body' === $name ? 'wp_kses_post' : ( 'artpsy_popup_link_url' === $name ? 'esc_url_raw' : 'sanitize_text_field' );
+			register_setting(
+				'artpsy_popup',
+				$name,
+				array(
+					'type'              => 'string',
+					'sanitize_callback' => $sanitize,
+					'default'           => $default,
+				)
+			);
+		}
+	}
+);
+
+add_action(
+	'admin_menu',
+	function () {
+		add_options_page(
+			'메인 팝업',
+			'메인 팝업',
+			'manage_options',
+			'artpsy-popup',
+			'artpsy_popup_settings_page'
+		);
+	}
+);
+
+function artpsy_popup_settings_page() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	$fields = array(
+		'artpsy_popup_title'      => array( '제목', 'text' ),
+		'artpsy_popup_body'       => array( '본문', 'textarea' ),
+		'artpsy_popup_link_url'   => array( '링크 주소 (비우면 링크가 안 나온다)', 'url' ),
+		'artpsy_popup_link_label' => array( '링크 라벨', 'text' ),
+	);
+	?>
+	<div class="wrap">
+		<h1>메인 팝업</h1>
+		<p>메인 화면에만 뜬다. 다른 페이지에는 켜도 안 나온다.</p>
+		<form method="post" action="options.php">
+			<?php settings_fields( 'artpsy_popup' ); ?>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="artpsy_popup_enabled">켜기</label></th>
+					<td>
+						<input type="checkbox" id="artpsy_popup_enabled" name="artpsy_popup_enabled" value="1"
+							<?php checked( '1', get_option( 'artpsy_popup_enabled' ) ); ?> />
+						<span class="description">끄면 마크업 자체가 안 나간다.</span>
+					</td>
+				</tr>
+				<?php foreach ( $fields as $name => list( $label, $type ) ) : ?>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $label ); ?></label></th>
+					<td>
+						<?php if ( 'textarea' === $type ) : ?>
+							<textarea id="<?php echo esc_attr( $name ); ?>" name="<?php echo esc_attr( $name ); ?>"
+								rows="5" class="large-text"><?php echo esc_textarea( get_option( $name ) ); ?></textarea>
+						<?php else : ?>
+							<input type="<?php echo esc_attr( $type ); ?>" id="<?php echo esc_attr( $name ); ?>"
+								name="<?php echo esc_attr( $name ); ?>" class="regular-text"
+								value="<?php echo esc_attr( get_option( $name ) ); ?>" />
+						<?php endif; ?>
+					</td>
+				</tr>
+				<?php endforeach; ?>
+			</table>
+			<?php submit_button(); ?>
+		</form>
+	</div>
+	<?php
+}
+
+/**
+ * 프런트. **메인에만** 나간다 — "메인 팝업" 이고, 다섯 페이지마다 뜨는 팝업은 아무도
+ * 원하지 않는다.
+ *
+ * <dialog> 인 것이 이 PR 의 안전 설계다.
+ *
+ *   JS 가 죽어서 못 열리면   아무 일도 안 일어난다. 공지 하나를 못 본다
+ *   열린 뒤 JS 가 죽으면     <form method="dialog"> 가 **브라우저 기능으로** 닫는다
+ *
+ * 닫기를 스크립트 핸들러에 걸지 않는다. 뜬 채로 안 닫히는 것은 백지보다 나쁘다.
+ *
+ * 모달(showModal)이 아니라 비모달(show)이다 — 모달은 Esc 를 공짜로 주는 대신 **페이지
+ * 전체를 막는다.** 닫기가 어떤 이유로든 안 먹으면 사이트가 잠긴다. 위험의 순서가
+ * "안 뜨는 것 < 안 닫히는 것" 이라, 애초에 막지 않는 쪽을 골랐다. Esc 가 없는 대신
+ * 열 때 닫기 버튼으로 포커스를 옮긴다(JS 가 살아 있는 시점이다).
+ *
+ * 본문을 **출력에서도** wp_kses_post 로 거른다. 저장 콜백은 설정 화면을 지날 때만 돌고
+ * `wp option update` 는 그것을 안 탄다 — 저장에서만 걸면 CLI 로 넣은 <script> 가 그대로 나간다.
+ */
+add_action(
+	'wp_footer',
+	function () {
+		if ( ! is_front_page() ) {
+			return;
+		}
+
+		if ( '1' !== (string) get_option( 'artpsy_popup_enabled' ) ) {
+			return;
+		}
+
+		$title = sanitize_text_field( (string) get_option( 'artpsy_popup_title' ) );
+		$body  = wp_kses_post( (string) get_option( 'artpsy_popup_body' ) );
+		$url   = esc_url( (string) get_option( 'artpsy_popup_link_url' ) );
+		$label = sanitize_text_field( (string) get_option( 'artpsy_popup_link_label' ) );
+
+		if ( '' === $title && '' === $body ) {
+			return;
+		}
+
+		echo '<dialog class="popup" id="artpsy-popup" aria-labelledby="artpsy-popup-title">';
+		echo '<h2 class="popup__title" id="artpsy-popup-title">' . esc_html( $title ) . '</h2>';
+		echo '<div class="popup__body">' . $body . '</div>';
+
+		if ( '' !== $url && '' !== $label ) {
+			echo '<p class="popup__link"><a class="link" href="' . $url . '">' . esc_html( $label ) . '</a></p>';
+		}
+
+		// 진짜 폼이다. method="dialog" 는 브라우저가 처리하므로 JS 없이 닫힌다.
+		echo '<form method="dialog" class="popup__close">';
+		echo '<button type="submit" class="link">닫기</button>';
+		echo '</form>';
+		echo '</dialog>';
+	}
+);
+

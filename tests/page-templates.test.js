@@ -675,3 +675,145 @@ describe("저널 아이템 정렬 (JOURNAL-CONSTRAINED)", () => {
     expect(claudeMd).not.toContain("`.journal__item` — 안 닫혔다");
   });
 });
+
+describe("메인 팝업 (PR 9)", () => {
+  const functionsPhp = read("../theme/artpsy/functions.php");
+  const themeJs = read("../theme/artpsy/src/main.js");
+  const css = read("../theme/artpsy/style.css");
+  const smoke = read("../smoke/smoke.mjs");
+  const popup = read("../smoke/popup.mjs");
+
+  describe("저장 — 옵션이다. CPT 를 또 만들지 않는다", () => {
+    it("register_setting 과 설정 화면이 있다", () => {
+      expect(functionsPhp).toMatch(/register_setting\(\s*\n?\s*'artpsy_popup'/);
+      expect(functionsPhp).toMatch(/add_options_page\(/);
+    });
+
+    it("팝업용 CPT 를 안 만든다 — 한 벌뿐이고 목록이 필요 없다", () => {
+      const types = [...functionsPhp.matchAll(/register_post_type\(\s*\n?\s*'([a-z_]+)'/g)].map((m) => m[1]);
+      expect(types.sort()).toEqual(["artpsy_inquiry", "artpsy_journal"]);
+    });
+
+    it("옵션 이름에 접두사가 붙는다", () => {
+      const keys = [...functionsPhp.matchAll(/'(artpsy_popup_[a-z_]+)'\s*=>/g)].map((m) => m[1]);
+      expect(keys.length).toBeGreaterThanOrEqual(5);
+      expect(keys.filter((k) => !k.startsWith("artpsy_"))).toEqual([]);
+    });
+
+    it("관리 화면이 manage_options 다", () => {
+      const page = functionsPhp.slice(functionsPhp.indexOf("add_options_page("));
+      expect(page.slice(0, 300)).toContain("'manage_options'");
+    });
+  });
+
+  describe("실패 방향 — 안 뜨는 것은 손해가 없고 안 닫히는 것은 백지보다 나쁘다", () => {
+    it("기본이 꺼짐이다", () => {
+      const consts = functionsPhp.slice(functionsPhp.indexOf("ARTPSY_POPUP_OPTIONS"));
+      expect(consts.slice(0, 400)).toMatch(/'artpsy_popup_enabled'\s*=>\s*''/);
+    });
+
+    it("여는 것만 JS 다", () => {
+      // 호출 형태로 본다. 주석이 왜 showModal 이 아닌지를 설명하고 있어서
+      // 이름만으로 찾으면 그 주석에 걸린다.
+      expect(themeJs).toContain("popup.show()");
+      expect(themeJs).not.toMatch(/\.showModal\(/);
+    });
+
+    it("닫기가 진짜 폼이다 — 핸들러에만 걸지 않는다", () => {
+      // 뜬 뒤에 JS 가 죽는 경우가 남는다. method="dialog" 는 브라우저가 처리한다.
+      expect(functionsPhp).toContain('<form method="dialog"');
+      expect(themeJs).not.toMatch(/popup[^\n]*addEventListener[^\n]*click/);
+      expect(themeJs).not.toContain(".close()");
+    });
+
+    it("모션 코드의 try/catch 밖에 있다 — ScrollTrigger 실패가 공지를 정하지 않는다", () => {
+      const at = themeJs.indexOf("initPopup();");
+      const gsapTry = themeJs.indexOf("initSmoothScroll();");
+      expect(at).toBeGreaterThan(-1);
+      expect(at).toBeLessThan(gsapTry);
+    });
+
+    it("열 때 닫기로 포커스를 옮긴다 — 비모달이라 Esc 가 없다", () => {
+      expect(themeJs).toContain(".popup__close button");
+      expect(themeJs).toContain("focus()");
+    });
+  });
+
+  describe("살균 — 출력에서도 거른다", () => {
+    it("저장과 출력 둘 다 wp_kses_post 다", () => {
+      // update_option 은 register_setting 의 sanitize_callback 을 안 탄다.
+      // 저장에서만 걸면 CLI 로 넣은 <script> 가 그대로 나간다.
+      const calls = [...functionsPhp.matchAll(/wp_kses_post\(/g)];
+      expect(calls.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("제목·라벨은 텍스트로 거른다", () => {
+      const render = functionsPhp.slice(functionsPhp.indexOf("'wp_footer'"));
+      expect(render).toContain("sanitize_text_field( (string) get_option( 'artpsy_popup_title' ) )");
+      expect(render).toContain("esc_html( $title )");
+    });
+  });
+
+  describe("자리 — 메인에만", () => {
+    it("is_front_page 로 막는다", () => {
+      const render = functionsPhp.slice(functionsPhp.indexOf("'wp_footer'"));
+      expect(render.slice(0, 400)).toContain("is_front_page()");
+    });
+  });
+
+  describe("접근성 — 마크업까지. AX 장치는 아직 이걸 안 본다", () => {
+    it("접근 가능한 이름이 제목과 묶인다", () => {
+      expect(functionsPhp).toContain('aria-labelledby="artpsy-popup-title"');
+      expect(functionsPhp).toContain('id="artpsy-popup-title"');
+    });
+
+    it("닫기 컨트롤에 이름이 있다 — 아이콘만 두지 않는다", () => {
+      expect(functionsPhp).toMatch(/<button type="submit" class="link">닫기<\/button>/);
+    });
+  });
+
+  describe("연출", () => {
+    it("등장이 CSS 다 — GSAP 이 안 낀다", () => {
+      expect(css).toContain("@starting-style");
+      expect(themeJs).not.toMatch(/gsap[^\n]*popup/i);
+    });
+
+    it("reduced-motion 을 다시 안 적는다 — 전역 블록이 이미 끈다", () => {
+      const popupCss = css.slice(css.indexOf("-- 메인 팝업"));
+      expect(popupCss).not.toContain("@media (prefers-reduced-motion");
+      expect(css).toContain("transition-duration: 0.01ms !important");
+    });
+
+    it("모달이 아니다 — 페이지를 막지 않는다", () => {
+      // 주석을 먼저 지운다. 왜 비모달인지를 설명하는 문장에 ::backdrop 이 들어 있어서,
+      // 안 지우면 설명이 규칙으로 읽힌다 — @supports 때와 같은 자리다.
+      const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
+      const popupCss = rules.slice(rules.indexOf(".popup {"));
+      expect(popupCss).not.toContain("::backdrop");
+    });
+  });
+
+  describe("smoke", () => {
+    it("배선돼 있다", () => {
+      expect(smoke).toContain("checkPopup");
+    });
+
+    const JUDGMENTS = [
+      ["기본이 꺼짐", "기본이 꺼짐이어야 한다"],
+      ["켜면 값 그대로", "팝업 제목이 설정한 값과 다르다"],
+      ["다시 끄면 사라진다", "껐는데 팝업이 그대로 나온다"],
+      ["다섯 페이지에는 안 나온다", "메인에만 나와야 한다"],
+      ["살균", "출력 살균이 없다"],
+    ];
+
+    for (const [label, needle] of JUDGMENTS) {
+      it(label, () => expect(popup).toContain(needle));
+    }
+
+    it("회차 시작 상태로 되돌린다", () => {
+      // 안 되돌리면 다음 사람이 팝업이 켜진 사이트를 받는다.
+      expect(popup).toContain("원래 값으로 못 되돌렸다");
+      expect(popup).toContain("} finally {");
+    });
+  });
+});
