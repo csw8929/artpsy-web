@@ -108,7 +108,13 @@ async function checkContactForm() {
     failures.push("/contact/ 의 동의 체크박스에 required 가 없다.");
   }
 
-  if (failures.length === 0) console.log("OK  문의 폼 — form · nonce · 동의 required");
+  // 캔버스용 설명이 프런트에 남아 있으면 주입이 안 돈 것이다. 그때 화면은 멀쩡해 보이고
+  // 폼만 없다 — 문구 확인이 아니라 주입 실패 경보다 (FORM-SLOT-DECIDE §2).
+  if (body.includes("편집 화면에는 안 보입니다")) {
+    failures.push("/contact/ 에 캔버스용 설명이 남아 있다 — 폼 주입이 안 돌았다.");
+  }
+
+  if (failures.length === 0) console.log("OK  문의 폼 — form · nonce · 동의 required · 설명 교체됨");
   return failures;
 }
 

@@ -396,7 +396,21 @@ add_filter(
 			return $content;
 		}
 
-		return preg_replace( '#</div>\s*$#', artpsy_contact_form_html() . '</div>', $content, 1 );
+		// 안쪽을 **갈아끼운다.** 덧붙이면 캔버스용 설명이 프런트에도 남는다.
+		//
+		// 그리고 이 형태라야 캔버스가 빈 상자가 아니다. 빈 그룹은 코어가
+		// "Group blocks together. Select a layout:" 이라는 초대장을 내는데
+		// templateLock: all 이 그것을 조용히 거절한다 — 이 파일 위쪽 core/buttons 주석이
+		// 적어 둔 **"열린 것처럼 보이는 잠금"** 과 같은 모양이다 (tester 가 캔버스에서
+		// 실제로 클릭해 innerCount 0 → 0 을 확인했다).
+		return preg_replace_callback(
+			'#^(.*?<div[^>]*>).*(</div>\s*)$#s',
+			static function ( $matched ) {
+				return $matched[1] . artpsy_contact_form_html() . $matched[2];
+			},
+			$content,
+			1
+		);
 	},
 	10,
 	2
