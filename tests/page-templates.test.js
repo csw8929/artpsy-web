@@ -922,3 +922,164 @@ describe("기본 SEO (PR 10)", () => {
     });
   });
 });
+
+describe("관리자 화면과 방문 집계 (PR 11)", () => {
+  const functionsPhp = read("../theme/artpsy/functions.php");
+  const smoke = read("../smoke/smoke.mjs");
+  const admin = read("../smoke/admin.mjs");
+  const phpCode = functionsPhp
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+
+  describe("문의 상태 — 셋이 파일에 있다", () => {
+    it("신규·처리중·완료 셋이다", () => {
+      const block = functionsPhp.slice(functionsPhp.indexOf("ARTPSY_INQUIRY_STATUSES = array("));
+      const keys = [...block.slice(0, 300).matchAll(/'([a-z]+)'\s*=>/g)].map((m) => m[1]);
+      expect(keys).toEqual(["new", "open", "done"]);
+    });
+
+    it("택소노미가 아니다 — 상태 이름이 DB 에 살면 조용히 갈라진다", () => {
+      expect(phpCode).not.toMatch(/register_taxonomy\(/);
+    });
+
+    it("커스텀 포스트 상태도 아니다 — 편집 화면에서 못 고른다", () => {
+      expect(phpCode).not.toMatch(/register_post_status\(/);
+    });
+
+    it("없는 값은 new 로 읽는다 — 셋 밖으로 새면 목록 필터가 못 잡는다", () => {
+      const fn = functionsPhp.slice(functionsPhp.indexOf("function artpsy_inquiry_status"));
+      expect(fn.slice(0, 400)).toContain("isset( ARTPSY_INQUIRY_STATUSES[ $value ] )");
+    });
+
+    it("목록에서 바꾸고 nonce 를 붙인다", () => {
+      expect(phpCode).toContain("post_row_actions");
+      expect(phpCode).toContain("wp_nonce_url(");
+      expect(phpCode).toContain("check_admin_referer(");
+    });
+
+    it("상태 변경이 manage_options 다", () => {
+      const handler = functionsPhp.slice(functionsPhp.indexOf("admin_post_artpsy_set_status"));
+      expect(handler.slice(0, 700)).toContain("current_user_can( 'manage_options' )");
+    });
+  });
+
+  describe("목록 열 — 누가 보냈는지 목록에서 보인다", () => {
+    it("이메일·상태 열을 넣고 날짜를 뒤로 민다", () => {
+      expect(phpCode).toContain("manage_artpsy_inquiry_posts_columns");
+      expect(phpCode).toContain("$columns['artpsy_email']");
+      expect(phpCode).toContain("$columns['artpsy_status']");
+    });
+
+    it("목록표를 새로 안 만든다 — 코어 자리만 쓴다", () => {
+      expect(phpCode).not.toMatch(/WP_List_Table/);
+      expect(phpCode).toContain("restrict_manage_posts");
+    });
+  });
+
+  describe("방문 집계 — 정직한 것이 동작하는 것보다 어렵다", () => {
+    // 화면에 숫자가 뜨면 그 자체로 신뢰를 요구한다. 문장은 스스로 미완성이라고 말할 수
+    // 있는데 숫자는 못 한다 — 그래서 안 모으는 것과 한계 문구가 이 절의 본론이다.
+    const FORBIDDEN = [
+      [/REMOTE_ADDR/, "IP"],
+      [/HTTP_USER_AGENT/, "User-Agent"],
+      [/setcookie\(|\$_COOKIE/, "쿠키"],
+      [/session_start\(/, "세션"],
+      [/HTTP_REFERER/, "유입 경로"],
+    ];
+
+    for (const [pattern, label] of FORBIDDEN) {
+      it(`${label} 를 안 만진다`, () => {
+        expect(phpCode).not.toMatch(pattern);
+      });
+    }
+
+    it("금지 목록이 조용히 줄어들지 않았다", () => {
+      expect(FORBIDDEN).toHaveLength(5);
+    });
+
+    it("관리 화면과 로그인한 사람을 뺀다 — 우리가 우리를 센다", () => {
+      const counter = functionsPhp.slice(functionsPhp.indexOf("ARTPSY_VISITS_OPTION = "));
+      expect(counter).toContain("is_admin()");
+      expect(counter).toContain("is_user_logged_in()");
+    });
+
+    it("N일치만 남긴다 — 안 자르면 autoload 전제가 무너진다", () => {
+      expect(phpCode).toContain("ARTPSY_VISITS_DAYS");
+      expect(phpCode).toContain("array_slice(");
+    });
+
+    it("한계를 화면에 적는다 — 숫자에도 자리표시자 표시가 필요하다", () => {
+      const widget = functionsPhp.slice(functionsPhp.indexOf("function artpsy_dashboard_widget"));
+      for (const phrase of ["봇을 안 거릅니다", "캐시", "외부 분석 도구", "로그아웃 상태"]) {
+        expect(widget).toContain(phrase);
+      }
+    });
+  });
+
+  describe("대시보드 — 코어 자리를 쓴다", () => {
+    it("wp_add_dashboard_widget 이고 새 최상위 메뉴가 아니다", () => {
+      expect(phpCode).toContain("wp_add_dashboard_widget(");
+      expect(phpCode).not.toMatch(/add_menu_page\(/);
+    });
+
+    it("관리자에게만 붙인다", () => {
+      const setup = functionsPhp.slice(functionsPhp.indexOf("'wp_dashboard_setup'"));
+      expect(setup.slice(0, 400)).toContain("current_user_can( 'manage_options' )");
+    });
+  });
+
+  describe("smoke 가 여덟을 본다", () => {
+    it("배선돼 있다", () => {
+      expect(smoke).toContain("checkAdmin");
+    });
+
+    const JUDGMENTS = [
+      ["상태 변경", "다시 읽으면 안 바뀌어 있다"],
+      ["목록 열", "목록 열에 ${need} 가 없다"],
+      ["위젯 권한", "editor 가 manage_options 를 갖는다"],
+      ["카운트 증가", "1 이어야 한다"],
+      ["관리 화면 URL", "관리 화면 URL 로 수가"],
+      ["로그인한 사람 제외", "로그인한 채로 프런트를 열었는데"],
+      ["개인정보 0", "IP 로 보이는 값이 있다"],
+      ["옵션 자르기", "일 넘으면 잘려야 한다"],
+    ];
+
+    for (const [label, needle] of JUDGMENTS) {
+      it(label, () => expect(admin).toContain(needle));
+    }
+
+    it("저장된 값을 실제로 꺼내 본다 — 코드 읽기로 안 때운다", () => {
+      // $_SERVER['REMOTE_ADDR'] 를 안 썼다는 것과 DB 에 없다는 것은 다르다.
+      expect(admin).toContain("get_option");
+      expect(admin).toContain("wp_json_encode");
+    });
+
+    it("증가와 비증가를 같은 회차에서 잰다", () => {
+      // "안 는다" 만 재면 아무 일도 안 일어나는 것과 구분이 안 된다.
+      expect(admin).toContain("afterFront - before");
+      expect(admin).toContain("afterAdminUrls !== afterFront");
+      expect(admin).toContain("afterLoggedIn !== afterAdminUrls");
+    });
+
+    it("만든 것을 지운다", () => {
+      expect(admin).toContain("wp_delete_user(");
+      expect(admin).toContain("wp_delete_post(");
+    });
+
+    it("심어 둔 과거 날짜를 되돌린다 — 지어낸 이력이 대시보드에 남으면 안 된다", () => {
+      // 이 PR 이 "숫자는 그 자체로 신뢰를 요구한다" 로 시작한 자리라, 검사가 그 신뢰를
+      // 먼저 깨면 안 된다. 값을 JS 로 왕복시키지 않는다 — 인용 규칙이 하나 더 생기고,
+      // 틀리면 복구가 조용히 실패한다(실제로 한 번 그랬다).
+      expect(admin).toContain("_smoke_backup");
+      expect(admin).toContain("delete_option(");
+      expect(admin).toContain("지어낸 이력이 대시보드에 남는다");
+    });
+
+    it("관리 화면 URL 만으로는 아무것도 안 재진다는 것을 적어 뒀다", () => {
+      // template_redirect 가 wp-admin·wp-login·REST 에서 아예 안 돈다. is_admin() 가드를
+      // 떼고 반증했더니 아무 일도 안 일어났다 — 그 가드는 훅을 옮기는 사람에게 남기는
+      // 표시이지 지금 막고 있는 것이 아니다.
+      expect(admin).toContain("template_redirect 가 wp-admin");
+    });
+  });
+});

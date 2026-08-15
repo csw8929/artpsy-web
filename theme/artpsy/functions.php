@@ -893,3 +893,320 @@ add_action(
 	5
 );
 
+/**
+ * 문의 상태. 셋으로 고정하고 **포스트 메타에 둔다.**
+ *
+ * 택소노미가 코드는 짧은데 상태 이름이 DB 에 산다 — 누가 텀을 지우거나 이름을 바꾸면
+ * 모델이 조용히 갈라진다. 커스텀 포스트 상태는 목록 필터를 공짜로 주지만 편집 화면에서
+ * 고를 수가 없다. 목록에서 바꾸는 것이 이 화면의 전부라 **행 액션 + 메타**로 간다.
+ *
+ * 상태 이름이 파일에 있으므로 편집자가 못 바꾸고, 못 바꾸는 것이 맞다 — 셋은 워크플로이지
+ * 콘텐츠가 아니다.
+ */
+const ARTPSY_INQUIRY_STATUSES = array(
+	'new'  => '신규',
+	'open' => '처리중',
+	'done' => '완료',
+);
+
+const ARTPSY_INQUIRY_STATUS_META = '_artpsy_status';
+
+function artpsy_inquiry_status( $post_id ) {
+	$value = (string) get_post_meta( $post_id, ARTPSY_INQUIRY_STATUS_META, true );
+	return isset( ARTPSY_INQUIRY_STATUSES[ $value ] ) ? $value : 'new';
+}
+
+/**
+ * 목록 열. 제목만으로는 **누가 보냈는지 목록에서 안 보인다** — 이메일이 메타에 있고
+ * `_` 접두라 기본 UI 가 숨긴다.
+ */
+add_filter(
+	'manage_artpsy_inquiry_posts_columns',
+	function ( $columns ) {
+		$date = $columns['date'] ?? null;
+		unset( $columns['date'] );
+
+		$columns['artpsy_email']  = '이메일';
+		$columns['artpsy_status'] = '상태';
+
+		if ( $date ) {
+			$columns['date'] = $date;
+		}
+
+		return $columns;
+	}
+);
+
+add_action(
+	'manage_artpsy_inquiry_posts_custom_column',
+	function ( $column, $post_id ) {
+		if ( 'artpsy_email' === $column ) {
+			$email = (string) get_post_meta( $post_id, '_artpsy_email', true );
+			echo $email ? '<a href="' . esc_url( 'mailto:' . $email ) . '">' . esc_html( $email ) . '</a>' : '—';
+			return;
+		}
+
+		if ( 'artpsy_status' === $column ) {
+			$status = artpsy_inquiry_status( $post_id );
+			echo '<span class="artpsy-status artpsy-status--' . esc_attr( $status ) . '">'
+				. esc_html( ARTPSY_INQUIRY_STATUSES[ $status ] ) . '</span>';
+		}
+	},
+	10,
+	2
+);
+
+/**
+ * 행 액션으로 상태를 바꾼다. 목록에서 한 번 눌러 끝나는 것이 이 화면의 요구다.
+ * nonce 를 붙인다 — 남의 클릭으로 상태가 바뀌면 안 된다.
+ */
+add_filter(
+	'post_row_actions',
+	function ( $actions, $post ) {
+		if ( 'artpsy_inquiry' !== $post->post_type || ! current_user_can( 'manage_options' ) ) {
+			return $actions;
+		}
+
+		$current = artpsy_inquiry_status( $post->ID );
+
+		foreach ( ARTPSY_INQUIRY_STATUSES as $key => $label ) {
+			if ( $key === $current ) {
+				continue;
+			}
+
+			$url = wp_nonce_url(
+				admin_url( 'admin-post.php?action=artpsy_set_status&post=' . $post->ID . '&status=' . $key ),
+				'artpsy_set_status_' . $post->ID
+			);
+
+			$actions[ 'artpsy_' . $key ] = '<a href="' . esc_url( $url ) . '">' . esc_html( $label ) . '(으)로</a>';
+		}
+
+		return $actions;
+	},
+	10,
+	2
+);
+
+add_action(
+	'admin_post_artpsy_set_status',
+	function () {
+		$post_id = isset( $_GET['post'] ) ? (int) $_GET['post'] : 0;
+		$status  = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '';
+
+		if ( ! current_user_can( 'manage_options' ) || ! isset( ARTPSY_INQUIRY_STATUSES[ $status ] ) ) {
+			wp_die( '권한이 없거나 없는 상태다.' );
+		}
+
+		check_admin_referer( 'artpsy_set_status_' . $post_id );
+
+		if ( 'artpsy_inquiry' !== get_post_type( $post_id ) ) {
+			wp_die( '문의가 아니다.' );
+		}
+
+		update_post_meta( $post_id, ARTPSY_INQUIRY_STATUS_META, $status );
+
+		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'edit.php?post_type=artpsy_inquiry' ) );
+		exit;
+	}
+);
+
+/** 상태로 거른다. 코어의 restrict_manage_posts 자리를 쓰고 목록표를 새로 안 만든다. */
+add_action(
+	'restrict_manage_posts',
+	function ( $post_type ) {
+		if ( 'artpsy_inquiry' !== $post_type ) {
+			return;
+		}
+
+		$selected = isset( $_GET['artpsy_status'] ) ? sanitize_key( wp_unslash( $_GET['artpsy_status'] ) ) : '';
+
+		echo '<select name="artpsy_status"><option value="">모든 상태</option>';
+		foreach ( ARTPSY_INQUIRY_STATUSES as $key => $label ) {
+			printf(
+				'<option value="%s"%s>%s</option>',
+				esc_attr( $key ),
+				selected( $selected, $key, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</select>';
+	}
+);
+
+add_action(
+	'pre_get_posts',
+	function ( $query ) {
+		if ( ! is_admin() || ! $query->is_main_query() ) {
+			return;
+		}
+
+		if ( 'artpsy_inquiry' !== $query->get( 'post_type' ) ) {
+			return;
+		}
+
+		$status = isset( $_GET['artpsy_status'] ) ? sanitize_key( wp_unslash( $_GET['artpsy_status'] ) ) : '';
+		if ( ! isset( ARTPSY_INQUIRY_STATUSES[ $status ] ) ) {
+			return;
+		}
+
+		// 'new' 는 메타가 아예 없는 것도 포함한다 — 저장 시점에 안 쓰기 때문이다.
+		if ( 'new' === $status ) {
+			$query->set(
+				'meta_query',
+				array(
+					'relation' => 'OR',
+					array(
+						'key'     => ARTPSY_INQUIRY_STATUS_META,
+						'compare' => 'NOT EXISTS',
+					),
+					array(
+						'key'   => ARTPSY_INQUIRY_STATUS_META,
+						'value' => 'new',
+					),
+				)
+			);
+			return;
+		}
+
+		$query->set(
+			'meta_query',
+			array(
+				array(
+					'key'   => ARTPSY_INQUIRY_STATUS_META,
+					'value' => $status,
+				),
+			)
+		);
+	}
+);
+
+/**
+ * 방문 집계. **정직한 것이 동작하는 것보다 어려운 자리다** — 숫자는 그 자체로 신뢰를
+ * 요구하고, 틀린 숫자는 틀렸다고 말하지 않는다.
+ *
+ * 그래서 모으는 것이 **일자별 총합 하나**뿐이다.
+ *
+ *   안 모은다   IP · User-Agent · 쿠키 · 세션 · 유입 경로 · 페이지별 순위
+ *   안 센다     관리 화면 · 로그인한 사람 · REST · cron · 404
+ *
+ * IP 를 안 모으는 것이 /privacy/ 와 짝이다. 거기 적어 둔 수집 항목이 셋(이름·이메일·
+ * 문의 내용)이고, 여기서 네 번째를 모으면 **그 문서가 거짓이 된다.**
+ *
+ * 로그인한 사람을 빼는 것은 "우리가 우리를 센다" 를 막는 것이다. 그래서 이 수는
+ * **로그아웃 상태의 프런트 조회수**이고, 그 한계를 위젯이 화면에 적는다.
+ *
+ * 옵션 하나에 N일치만 남긴다. 날짜 키 30개면 1KB 아래라 autoload 로 둬도 매 요청에
+ * 실리는 양이 무시할 수준이고, 안 자르면 그 전제가 무너진다.
+ */
+const ARTPSY_VISITS_OPTION = 'artpsy_visits';
+const ARTPSY_VISITS_DAYS   = 30;
+
+function artpsy_visits() {
+	$raw = get_option( ARTPSY_VISITS_OPTION, array() );
+	return is_array( $raw ) ? $raw : array();
+}
+
+add_action(
+	'template_redirect',
+	function () {
+		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || is_404() ) {
+			return;
+		}
+
+		if ( is_user_logged_in() ) {
+			return;
+		}
+
+		if ( 'GET' !== ( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) {
+			return;
+		}
+
+		$today  = current_time( 'Y-m-d' );
+		$visits = artpsy_visits();
+
+		$visits[ $today ] = ( isset( $visits[ $today ] ) ? (int) $visits[ $today ] : 0 ) + 1;
+
+		// N일치만 남긴다. 키가 날짜라 정렬이 곧 시간순이다.
+		ksort( $visits );
+		if ( count( $visits ) > ARTPSY_VISITS_DAYS ) {
+			$visits = array_slice( $visits, -ARTPSY_VISITS_DAYS, null, true );
+		}
+
+		update_option( ARTPSY_VISITS_OPTION, $visits );
+	},
+	20
+);
+
+/**
+ * 대시보드 위젯. 코어 자리를 쓰고 최상위 메뉴를 안 만든다.
+ *
+ * 한계를 **화면에 적는다.** /privacy/ 와 FAQ 에서 "자리표시자입니다" 를 적은 것과 같은
+ * 이유이고, 숫자는 그 표시가 더 필요하다 — 문장은 스스로 미완성이라고 말할 수 있는데
+ * 숫자는 못 한다.
+ */
+add_action(
+	'wp_dashboard_setup',
+	function () {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		wp_add_dashboard_widget( 'artpsy_dashboard', 'artpsy — 문의와 방문', 'artpsy_dashboard_widget' );
+	}
+);
+
+function artpsy_dashboard_widget() {
+	$counts = array_fill_keys( array_keys( ARTPSY_INQUIRY_STATUSES ), 0 );
+
+	$inquiries = get_posts(
+		array(
+			'post_type'   => 'artpsy_inquiry',
+			'post_status' => 'any',
+			'numberposts' => -1,
+		)
+	);
+
+	foreach ( $inquiries as $inquiry ) {
+		++$counts[ artpsy_inquiry_status( $inquiry->ID ) ];
+	}
+
+	echo '<p><strong>문의</strong> — ';
+	$parts = array();
+	foreach ( ARTPSY_INQUIRY_STATUSES as $key => $label ) {
+		$parts[] = esc_html( $label ) . ' ' . (int) $counts[ $key ];
+	}
+	echo implode( ' · ', $parts );
+	echo ' <a href="' . esc_url( admin_url( 'edit.php?post_type=artpsy_inquiry' ) ) . '">전체 보기</a></p>';
+
+	$recent = array_slice( $inquiries, 0, 5 );
+	if ( $recent ) {
+		echo '<ul>';
+		foreach ( $recent as $inquiry ) {
+			printf(
+				'<li><a href="%s">%s</a> <span>%s</span></li>',
+				esc_url( (string) get_edit_post_link( $inquiry->ID ) ),
+				esc_html( $inquiry->post_title ),
+				esc_html( get_the_date( 'Y. m. d', $inquiry ) )
+			);
+		}
+		echo '</ul>';
+	}
+
+	$visits = artpsy_visits();
+	$total  = array_sum( array_map( 'intval', $visits ) );
+	$today  = (int) ( $visits[ current_time( 'Y-m-d' ) ] ?? 0 );
+
+	printf(
+		'<p><strong>방문</strong> — 오늘 %d · 최근 %d일 %d</p>',
+		$today,
+		(int) ARTPSY_VISITS_DAYS,
+		$total
+	);
+
+	echo '<p class="description artpsy-dashboard__limits">이 수는 <strong>로그아웃 상태의 프런트 조회수</strong>입니다. '
+		. '봇을 안 거릅니다. 페이지 캐시가 있으면 실제보다 적게 잡힙니다. '
+		. '외부 분석 도구와 값이 다릅니다. 고유 방문자가 아니라 조회 수이고, '
+		. '식별자를 만들지 않으므로 같은 사람이 여러 번 열면 여러 번 셉니다.</p>';
+}
+
