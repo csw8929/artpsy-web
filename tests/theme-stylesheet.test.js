@@ -393,6 +393,9 @@ describe("flow 마진 (매핑 §4.2.4)", () => {
     // 세미콜론까지 본다. /margin:\s*0/ 만으로는 `margin: 0 0 24px` 도 통과하는데 그건
     // 마진을 끈 것이 아니라 다시 켠 것이고 간격이 또 24 가 된다.
     [".card p", /margin:\s*0;/, "코어 blockGap 24px 이 이 줄에 진다 — 지우면 카드 간격이 16 이 아니라 24 다"],
+    // PR-3 이 헤더 파트를 얹으면서 <main> 이 두 번째 형제가 됐다. 히어로가 100svh 라
+    // 그 24px 이 그대로 첫 화면을 밀어내고, 헤더를 fixed 로 띄운 이유가 사라진다.
+    [".wp-site-blocks > *", /margin-block:\s*0/, "헤더 파트 때문에 main 이 두 번째 형제가 된다 — 24px 이 첫 화면을 민다"],
   ];
 
   for (const [selector, pattern, why] of MECHANISM) {
@@ -405,8 +408,8 @@ describe("flow 마진 (매핑 §4.2.4)", () => {
     });
   }
 
-  it("가족이 셋이다", () => {
-    expect(MECHANISM).toHaveLength(3);
+  it("가족이 넷이다", () => {
+    expect(MECHANISM).toHaveLength(4);
   });
 
   // 위는 기전으로 닫고 아래는 문법으로 닫는다. 둘은 다른 것을 지킨다.
@@ -417,9 +420,9 @@ describe("flow 마진 (매핑 §4.2.4)", () => {
   // .card p 는 `margin: 0` 이라 여기 안 걸린다. **그것이 의도다.** 이 단언이 세는 것은
   // 가족의 수가 아니라 `margin-block: 0` 을 쓴 자리의 수다. 형태를 맞추려고 .card p 를
   // margin-block 으로 고쳐 쓰지 않는다 — base.css:151 의 1:1 이식이 우선이다.
-  const MARGIN_BLOCK_TARGETS = [".grid > *", ".hero > *"];
+  const MARGIN_BLOCK_TARGETS = [".grid > *", ".hero > *", ".wp-site-blocks > *"];
 
-  it("margin-block: 0 은 두 곳뿐이다 — 전역으로 끄지 않는다", () => {
+  it("margin-block: 0 은 세 곳뿐이다 — 전역으로 끄지 않는다", () => {
     const hits = [...withoutComments.matchAll(/([^{}]+)\{[^}]*margin-block:\s*0[^}]*\}/g)]
       .map((m) => m[1].trim());
     expect(hits.sort()).toEqual([...MARGIN_BLOCK_TARGETS].sort());
@@ -461,5 +464,38 @@ describe("히어로 메타 (매핑 §4.2.0)", () => {
     for (const text of ["Seoul", "Since 2026", "By appointment"]) {
       expect(template).toContain(`<p>${text}</p>`);
     }
+  });
+});
+
+describe("사이트 헤더 (PR-3)", () => {
+  // 헤더가 흐름에 들어가면 min-height: 100svh 인 히어로가 그만큼 밀려 첫 화면
+  // 풀블리드가 깨진다. 그리고 LCP 조사에서 8px 짜리 흐름 헤더 하나가 LCP 후보를
+  // 뒤집었다 — fixed 는 같은 조작에서 안 뒤집었고 기하는 셋 다 같았다.
+  //
+  // 셋을 따로 단언한다. position 만 보면 z-index 가 빠져도 통과하는데, .hero 가
+  // position: relative 라 헤더와 같은 층에 그려지고 DOM 에서 뒤라 그때 히어로가
+  // 헤더를 덮는다 — "헤더가 있는데 안 보인다"가 된다.
+  const RULES = [
+    [/position:\s*fixed/, "흐름 밖으로 뺀다 — 히어로가 밀리지 않게"],
+    [/z-index:\s*\d/, ".hero 가 relative 라 없으면 히어로가 헤더를 덮는다"],
+    [/top:\s*0/, "화면 위에 붙인다"],
+  ];
+
+  for (const [pattern, label] of RULES) {
+    it(`.site-header — ${label}`, () => {
+      expect(bodyOf(".site-header")).toMatch(pattern);
+    });
+  }
+
+  it("규칙 목록이 조용히 줄어들지 않았다", () => {
+    expect(RULES).toHaveLength(3);
+  });
+
+  it("가로 패딩이 루트 패딩이다 — 헤더가 흐름 밖이라 has-global-padding 이 안 걸린다", () => {
+    // 안 맞추면 로고가 히어로 콘텐츠와 다른 선에서 시작한다. 값을 리터럴로 적으면
+    // theme.json 의 clamp 과 두 벌이 되어 갈린다.
+    const body = bodyOf(".site-header");
+    expect(body).toContain("var(--wp--style--root--padding-left)");
+    expect(body).toContain("var(--wp--style--root--padding-right)");
   });
 });

@@ -274,3 +274,98 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
 }
 
 .hero__meta p { margin: 0; }
+
+/* -- 사이트 헤더 --------------------------------------------------------
+   히어로 위에 얹는다. 흐름에 넣으면 min-height: 100svh 인 히어로가 그만큼 밀려
+   첫 화면 풀블리드가 깨진다. LCP 조사에서 8px 짜리 흐름 헤더 하나가 LCP 후보를
+   뒤집었고 fixed 는 같은 조작에서 안 뒤집었다 — 기하는 셋 다 같았다. 성능이 이
+   PR 의 판정은 아니지만 공짜로 피할 수 있는 흔들림을 들일 이유가 없다.
+
+   z-index 가 필요하다. .hero 가 position: relative 라 헤더와 같은 층에 그려지고
+   DOM 에서 뒤라 그냥 두면 히어로가 헤더를 덮는다. 히어로 안쪽의 -1 둘
+   (.hero__media · .hero::after)은 .hero 가 스태킹 컨텍스트가 아니라 루트로
+   빠져나가므로 이 값과 겨루지 않는다.
+
+   가로 패딩은 루트 패딩을 그대로 쓴다. 헤더가 흐름 밖이라 .has-global-padding 이
+   안 걸리는데, 안 맞추면 로고가 히어로 콘텐츠와 다른 선에서 시작한다. */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  align-items: baseline;
+  gap: var(--wp--preset--spacing--20) var(--wp--preset--spacing--40);
+  padding: var(--wp--preset--spacing--30) var(--wp--style--root--padding-right)
+    var(--wp--preset--spacing--30) var(--wp--style--root--padding-left);
+}
+
+/* 헤더 파트가 첫 자식이 되면서 <main> 이 두 번째 형제가 된다. 코어가
+   :where(.wp-site-blocks) > * 로 margin-block-start: 24px 를 얹고, 히어로가
+   100svh 라 그 24px 이 그대로 첫 화면을 밀어낸다 — 헤더를 띄운 이유가 사라진다.
+   .grid > * · .hero > * 와 같은 기전이고 같은 형태로 끈다.
+   여기 자식은 헤더·main·푸터 셋뿐이고 셋 다 이 간격에 기대지 않는다 —
+   헤더는 흐름 밖이고 푸터는 자기 패딩을 든다. */
+.wp-site-blocks > * { margin-block: 0; }
+
+.site-header__brand {
+  margin: 0;
+  font-family: var(--wp--preset--font-family--display);
+  font-size: var(--wp--custom--font-size--card);
+  letter-spacing: var(--wp--custom--letter-spacing--heading);
+}
+
+.site-header__brand a { color: var(--wp--preset--color--ink); }
+
+.site-nav__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wp--preset--spacing--10) var(--wp--preset--spacing--30);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  letter-spacing: var(--wp--custom--letter-spacing--meta);
+  text-transform: uppercase;
+}
+
+/* 다섯이 전부 밑줄을 달고 있으면 헤더가 무거워진다. 자리는 미리 잡아 두고
+   (transparent) 색만 켠다 — 호버에 밑줄이 생기면서 줄이 밀리지 않는다. */
+.site-nav__list a {
+  color: var(--wp--preset--color--ink);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+
+.site-nav__list a:hover,
+.site-nav__list a:focus-visible { border-bottom-color: currentColor; }
+
+/* .link:focus-visible 와 같은 이유다 — 기본 아웃라인은 이 종이 위에서 안 보인다. */
+.site-nav__list a:focus-visible,
+.site-header__brand a:focus-visible {
+  outline: 2px solid var(--wp--preset--color--ink);
+  outline-offset: 4px;
+}
+
+/* -- 푸터 크레딧 --------------------------------------------------------
+   CC BY / BY-SA 의 표시 의무다 (src/assets/CREDITS.md). 저널 썸네일 크레딧은
+   여기가 아니라 그 이미지의 캡션에 있다 — 썸네일이 PR-5 에서 포스트 타입으로
+   옮겨 갈 때 크레딧이 이미지와 같이 움직여야 하고, 푸터에 하드코딩하면 그 이동이
+   조용히 어긋난다. */
+.site-footer { border-top: 1px solid var(--wp--custom--color--line); }
+
+.site-credit,
+.site-footer__legal {
+  margin: var(--wp--preset--spacing--20) 0 0;
+  color: var(--wp--preset--color--ink-faint);
+}
+
+/* -- 저널 썸네일 캡션 --------------------------------------------------
+   코어는 .wp-block-image :where(figcaption) 로 여백만 준다 — :where 라 특정도가
+   0 이어서 이 규칙이 그냥 이긴다. */
+.journal__thumb-block figcaption {
+  margin: var(--wp--preset--spacing--10) 0 0;
+  font-size: var(--wp--preset--font-size--meta);
+  line-height: var(--wp--custom--line-height--normal);
+  color: var(--wp--preset--color--ink-faint);
+}

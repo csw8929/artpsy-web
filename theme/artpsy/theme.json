@@ -252,5 +252,17 @@
       }
     },
     "css": "body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; word-break: keep-all; overflow-wrap: break-word; } h1 { text-wrap: balance; }"
-  }
+  },
+  "templateParts": [
+    {
+      "area": "header",
+      "name": "header",
+      "title": "헤더"
+    },
+    {
+      "area": "footer",
+      "name": "footer",
+      "title": "푸터"
+    }
+  ]
 }
