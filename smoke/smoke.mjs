@@ -9,6 +9,7 @@ import { checkInquiryCaps } from "./caps.mjs";
 import { checkPopup } from "./popup.mjs";
 import { checkSeo } from "./seo.mjs";
 import { checkAdmin } from "./admin.mjs";
+import { checkManual } from "./manual.mjs";
 
 // DB 레코드가 있다고 파일이 서는 게 아니다 — 저널 대표 이미지가 그렇게 깨졌었다
 // (SEED-EXISTS-DECIDE). 200만으로는 "이미지 URL을 0개 모으고 통과"하는 구멍이 남아
@@ -226,6 +227,7 @@ async function main() {
 		...(await checkPopup()),
 		...(await checkSeo()),
 		...(await checkAdmin()),
+		...(await checkManual()),
 	];
 
   if (failures.length > 0) {
