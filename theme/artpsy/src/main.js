@@ -146,6 +146,34 @@ function stopMotion() {
   gsap.set(HERO_MEDIA, { willChange: "auto" });
 }
 
+/**
+ * Popup. Opening is the only thing JS does here — closing is `<form method="dialog">`,
+ * which the browser handles. If this script dies before opening, nothing happens; if it
+ * dies after, the close button still works. That asymmetry is deliberate: a popup that
+ * never shows costs one notice, a popup that cannot be closed blocks the site.
+ *
+ * `show()` rather than `showModal()`. Modal would give Esc for free but blocks the page
+ * while open; non-modal never blocks. Focus moves to the close control instead, which is
+ * the keyboard path — done here, while the script is still alive.
+ *
+ * Kept out of the GSAP try/catch below on purpose. It shares no state with the motion
+ * code, and folding it in would let a ScrollTrigger failure decide whether a notice is
+ * shown. The entrance is CSS, so there is no half-open state to recover from.
+ */
+function initPopup() {
+  const popup = document.getElementById("artpsy-popup");
+  if (!popup || typeof popup.show !== "function") return;
+
+  popup.show();
+  popup.querySelector(".popup__close button")?.focus();
+}
+
+try {
+  initPopup();
+} catch (err) {
+  console.error(err);
+}
+
 if (motionQuery.matches) {
   // No smooth scroll, no parallax. Reveals are already neutralised in CSS.
   gsap.set("[data-reveal]", { opacity: 1, y: 0 });
