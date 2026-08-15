@@ -817,3 +817,108 @@ describe("메인 팝업 (PR 9)", () => {
     });
   });
 });
+
+describe("기본 SEO (PR 10)", () => {
+  const functionsPhp = read("../theme/artpsy/functions.php");
+
+  // "안 한다" 를 단언할 때는 주석을 먼저 지운다. 이 파일은 **왜 안 하는지**를 주석에
+  // 적으므로 그 이름이 반드시 파일에 있고, 안 지우면 설명이 코드로 읽힌다.
+  // 이 라운드에 CSS 에서 두 번, PHP 에서 여기 세 번 같은 모양이 났다.
+  const phpCode = functionsPhp
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+  const smoke = read("../smoke/smoke.mjs");
+  const seo = read("../smoke/seo.mjs");
+
+  describe("코어가 내는 것을 안 건드린다", () => {
+    it("<title> 을 직접 안 낸다", () => {
+      // 응답을 열어서 확인했다 — 코어가 이미 낸다. 우리가 또 내면 둘이 된다.
+      expect(phpCode).not.toMatch(/add_theme_support\(\s*'title-tag'/);
+      expect(phpCode).not.toContain("<title>");
+    });
+
+    it("canonical 을 직접 안 낸다", () => {
+      expect(phpCode).not.toContain('rel="canonical"');
+    });
+
+    it("사이트맵을 직접 안 만든다 — 코어 wp-sitemap.xml 을 쓴다", () => {
+      expect(phpCode).not.toMatch(/sitemap/i);
+    });
+  });
+
+  describe("설명을 우리가 짓지 않는다", () => {
+    it("편집자가 채울 자리를 만든다", () => {
+      expect(functionsPhp).toMatch(/add_post_type_support\(\s*'page',\s*'excerpt'\s*\)/);
+    });
+
+    it("수동 발췌만 쓴다 — 자동 발췌는 편집자가 고른 문장이 아니다", () => {
+      // get_the_excerpt() 는 발췌가 없으면 본문에서 만들어 낸다.
+      expect(phpCode).toContain("post_excerpt");
+      expect(phpCode).not.toContain("get_the_excerpt()");
+    });
+
+    it("없으면 사이트 태그라인으로 떨어진다 — 리터럴 문장이 없다", () => {
+      const fn = functionsPhp.slice(functionsPhp.indexOf("function artpsy_seo_description"));
+      expect(fn.slice(0, 600)).toContain("get_bloginfo( 'description' )");
+    });
+  });
+
+  describe("og:image", () => {
+    it("대표 이미지 → 없으면 히어로", () => {
+      const fn = functionsPhp.slice(functionsPhp.indexOf("function artpsy_seo_image"));
+      expect(fn.slice(0, 600)).toContain("get_post_thumbnail_id()");
+      expect(fn.slice(0, 600)).toContain("hero-codes-2560.webp");
+    });
+
+    it("절대 URL 이다 — 소셜이 상대 경로를 못 가져간다", () => {
+      const fn = functionsPhp.slice(functionsPhp.indexOf("function artpsy_seo_image"));
+      expect(fn.slice(0, 600)).toContain("get_theme_file_uri(");
+    });
+  });
+
+  describe("smoke 가 응답을 본다", () => {
+    it("배선돼 있다", () => {
+      expect(smoke).toContain("checkSeo");
+    });
+
+    it("문의가 사이트맵에 없는지 본다 — 지금 사실인 것과 보고 있는 것은 다르다", () => {
+      // public: false 라 저절로 빠지지만, 누가 켜면 상담 문의 URL 이 검색엔진으로 간다.
+      expect(seo).toContain("artpsy_inquiry");
+      expect(seo).toContain("상담 문의 URL 이 검색엔진으로 간다");
+    });
+
+    it("published 문의를 만들어 놓고 잰다 — 안 그러면 아무것도 안 잰다", () => {
+      // 코어 사이트맵은 post_status: publish 만 담고 우리는 private 로 저장한다.
+      // 평소 상태에서는 public 을 켜도 아무 일이 안 일어나서, "안 나온다" 가 통과해도
+      // 그것이 우리가 막아서인지 알 수 없다. 실제로 public 을 켜서 반증했더니 안 걸렸다.
+      expect(seo).toContain('"post_status" => "publish"');
+      expect(seo).toContain("wp_delete_post(");
+      expect(seo).toContain("검사용 문의를 못 지웠다");
+    });
+
+    it("설명을 값까지 대조한다 — 있다/없다로 재면 우리가 지어낸 문장도 통과한다", () => {
+      expect(seo).toContain("expectedDescriptions");
+      expect(seo).toContain("편집자가 넣은 값과 다르다");
+      expect(seo).toContain("발췌도 태그라인도 비어 있는데 무엇을 적었나");
+    });
+
+    it("페이지 개수를 pages.mjs 에서 유도한다 — 두 곳에 안 적는다", () => {
+      expect(seo).toContain('from "./pages.mjs"');
+      expect(seo).toContain("found.length !== PAGES.length");
+    });
+
+    it("라우트마다 og:title·og:url 이 서로 다른지 본다", () => {
+      // 여섯이 같은 값을 들어도 "있다" 는 통과한다.
+      expect(seo).toContain("라우트마다 다르지 않다");
+    });
+
+    it("og:image 가 200 인지 본다", () => {
+      expect(seo).toContain('method: "HEAD"');
+      expect(seo).toContain("아무것도 안 재고 있다");
+    });
+
+    it("코어 태그와 겹치지 않는지 본다", () => {
+      expect(seo).toContain("코어와 겹쳤다");
+    });
+  });
+});
