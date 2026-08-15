@@ -6,7 +6,7 @@
     "wp-content/mu-plugins": "./smoke/mu-plugins"
   },
   "lifecycleScripts": {
-    "afterStart": "node smoke/seed-pages.mjs"
+    "afterStart": "node smoke/seed-pages.mjs && node smoke/seed-journal.mjs"
   },
   "config": {
     "WP_DEBUG": true,

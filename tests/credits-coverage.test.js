@@ -9,6 +9,7 @@
 // 테마 마크업이 같은지만 본다.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { JOURNAL } from "../smoke/journal.mjs";
 
 const credits = readFileSync(new URL("../src/assets/CREDITS.md", import.meta.url), "utf8");
 const footer = readFileSync(new URL("../theme/artpsy/parts/footer.html", import.meta.url), "utf8");
@@ -46,5 +47,14 @@ describe("크레딧 페이지 표시 대조 (CREDITS-FIX)", () => {
     expect(captions, "저널 캡션이 2개가 아니다").toHaveLength(2);
     expect(stripTags(captions[0][1])).toBe(displayed[1]);
     expect(stripTags(captions[1][1])).toBe(displayed[2]);
+  });
+
+  // PR 5 부터 같은 두 이미지가 저널 글의 대표 이미지로도 올라간다. 크레딧은 첨부의
+  // 캡션에 실려 이미지를 따라다니는데, 그 값이 여기서 세 번째 사본이 된다 —
+  // 세 벌이 되면 갈리는 것이 시간 문제라 같은 정본에 붙여 둔다.
+  it("저널 시드의 첨부 캡션도 CREDITS.md 값과 일치한다", () => {
+    expect(JOURNAL, "시드가 둘이 아니다").toHaveLength(2);
+    expect(stripTags(JOURNAL[0].caption)).toBe(displayed[1]);
+    expect(stripTags(JOURNAL[1].caption)).toBe(displayed[2]);
   });
 });

@@ -382,10 +382,25 @@ h2 { margin: 0 0 var(--wp--preset--spacing--30); }
   color: var(--wp--preset--color--ink-faint);
 }
 
+/* -- 저널 아카이브 ------------------------------------------------------
+   .grid 를 안 건드린다. 저널 사정으로 공유 규칙을 바꾸면 메인의 프로그램 카드도 같이
+   바뀐다 (PR5-JOURNAL §3).
+
+   auto-fit 대신 auto-fill 인 이유는 **개수가 편집자에게 달렸기** 때문이다. auto-fit 은
+   빈 트랙을 접어서, 글이 하나일 때 카드 하나가 폭 전체로 늘어난다 — 개수가 고정인
+   프로그램 카드 셋에서는 그게 맞는 값이고(그래서 .grid 는 그대로 둔다), 개수가 변하는
+   목록에서는 "글이 하나일 때만 카드가 다른 모양" 이 된다. auto-fill 은 트랙을 남겨
+   카드 크기를 유지한다. */
+.journal--archive { grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+
 /* -- 저널 썸네일 캡션 --------------------------------------------------
    코어는 .wp-block-image :where(figcaption) 로 여백만 준다 — :where 라 특정도가
-   0 이어서 이 규칙이 그냥 이긴다. */
-.journal__thumb-block figcaption {
+   0 이어서 이 규칙이 그냥 이긴다.
+
+   대표 이미지도 같이 잡는다. 크레딧이 첨부의 캡션에 있고 functions.php 의 필터가
+   그것을 <figcaption> 으로 내므로, 아카이브·낱글·메인이 같은 모양이어야 한다. */
+.journal__thumb-block figcaption,
+.wp-block-post-featured-image figcaption {
   margin: var(--wp--preset--spacing--10) 0 0;
   font-size: var(--wp--preset--font-size--meta);
   line-height: var(--wp--custom--line-height--normal);
