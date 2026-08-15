@@ -564,6 +564,28 @@ add_action(
 				'show_in_menu'        => true,
 				'menu_icon'           => 'dashicons-email',
 				'capability_type'     => 'post',
+				// 권한을 관리자로 좁힌다. capability_type: 'post' 만 두면 문의가 일반 글의
+				// 권한을 그대로 쓰고, 코어의 editor 역할이 read_private_posts 와
+				// edit_others_posts 를 가져서 **편집자가 상담 문의를 읽는다**
+				// (tester 가 임시 계정으로 실측했다 — PR7-FORM-PROCESS-T2).
+				//
+				// /privacy/ 에 "이용 목적은 문의에 회신하는 것 하나" 라고 적어 놨다.
+				// 구현이 그 문장과 어긋나면 고정할 것이 결함이 아니라 거짓말이 된다.
+				//
+				// 전용 capability_type 을 안 쓴다. 그건 활성화 훅에서 역할을 고쳐야 해서
+				// DB 상태가 남고, 지금 필요한 경계는 "관리자만" 하나뿐이다.
+				// "문의 담당" 역할이 실제로 생기면 그때 값이 난다 (INQUIRY-CAPS).
+				'capabilities'        => array(
+					'edit_post'          => 'manage_options',
+					'read_post'          => 'manage_options',
+					'delete_post'        => 'manage_options',
+					'edit_posts'         => 'manage_options',
+					'edit_others_posts'  => 'manage_options',
+					'delete_posts'       => 'manage_options',
+					'publish_posts'      => 'manage_options',
+					'read_private_posts' => 'manage_options',
+					'create_posts'       => 'manage_options',
+				),
 				'supports'            => array( 'title', 'editor' ),
 			)
 		);
