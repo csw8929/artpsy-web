@@ -19,7 +19,13 @@ function hasMarker(html, marker) {
   return classAttrs.some((attr) => attr.slice(7, -1).trim().split(/\s+/).includes(marker));
 }
 
+// 같은 경로를 두 번 받지 않는다. 표에 같은 path 가 여러 번 나오고(프론트가 셋)
+// checkAssets 도 같은 경로를 다시 받는데, 두 번 받으면 그 사이에 상태가 갈릴 수 있다 —
+// 라우트는 통과하고 자산만 실패하는 회차가 나오면 원인을 사이트에서 찾게 된다.
+const bodyCache = new Map();
+
 async function fetchHtml(path) {
+  if (bodyCache.has(path)) return bodyCache.get(path);
   const url = new URL(path, BASE).toString();
   let res;
   try {
@@ -32,7 +38,9 @@ async function fetchHtml(path) {
     );
   }
   const body = await res.text();
-  return { status: res.status, body };
+  const result = { status: res.status, body };
+  bodyCache.set(path, result);
+  return result;
 }
 
 async function checkRoutes() {

@@ -191,3 +191,24 @@ describe("시드", () => {
     expect(JOURNAL).toHaveLength(2);
   });
 });
+
+describe("실패가 보이는가 (SEED-WARN)", () => {
+  const smoke = read("../smoke/smoke.mjs");
+  const seeds = ["../smoke/seed-pages.mjs", "../smoke/seed-journal.mjs"].map(read);
+
+  it("시드가 실패 사유를 stderr 로도 낸다", () => {
+    // wp-env 는 lifecycleScript 가 실패했을 때 **stderr 만** 보여 준다. stdout 은 스피너에
+    // 덧쓰이고 사라지고, 성공했을 때는 --debug 에서만 나온다
+    // (@wordpress/env execute-lifecycle-script.js). stdout 에만 두면 `afterStart Error:`
+    // 뒤가 빈 채로 뜨고, 시드가 왜 실패했는지 아무 데도 안 남는다.
+    for (const seed of seeds) {
+      expect(seed).toContain("process.stderr.write");
+    }
+  });
+
+  it("본문을 회차 안에서 한 번만 받는다", () => {
+    // 라우트 검사와 자산 검사가 같은 경로를 본다. 두 번 받으면 그 사이에 상태가 갈리고,
+    // 라우트는 통과하는데 자산만 실패하는 회차가 나오면 원인을 사이트에서 찾게 된다.
+    expect(smoke).toContain("bodyCache");
+  });
+});
