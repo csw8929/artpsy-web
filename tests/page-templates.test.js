@@ -171,8 +171,14 @@ describe("시드 — 템플릿 파일만으로는 URL 이 안 생긴다", () => 
     expect(seed).toContain("get_page_by_path");
   });
 
-  it("테마가 콘텐츠를 만들지 않는다 — 산출물은 테마이고 페이지는 고객의 것이다", () => {
-    expect(read("../theme/artpsy/functions.php")).not.toContain("wp_insert_post");
+  it("테마가 시드 콘텐츠를 만들지 않는다 — 산출물은 테마이고 페이지는 고객의 것이다", () => {
+    // PR 7 이 wp_insert_post 를 하나 들였다. 그건 시드가 아니라 **제품 기능**이다 —
+    // 방문자가 보낸 문의를 저장하는 것이고, 그 자리가 테마 말고 어디에도 없다.
+    // 그래서 "호출이 없다" 가 아니라 "만드는 것이 문의뿐이다" 로 좁힌다.
+    const php = read("../theme/artpsy/functions.php");
+    const types = [...php.matchAll(/wp_insert_post\([\s\S]{0,200}?'post_type'\s*=>\s*'([a-z_]+)'/g)].map((m) => m[1]);
+    expect(types.length).toBeGreaterThan(0);
+    expect([...new Set(types)]).toEqual(["artpsy_inquiry"]);
   });
 });
 
@@ -238,17 +244,20 @@ describe("문의 폼 (PR 6) — 마크업까지. 동작은 PR 7 이다", () => {
     // 이름이 하나 늘면 처리방침의 "수집하는 항목" 과 갈린다. 갈린 쪽은 화면에 안 보인다.
     const start = functionsPhp.indexOf("function artpsy_contact_form_html");
     const form = functionsPhp.slice(start, functionsPhp.indexOf("add_filter", start));
-    const names = [...form.matchAll(/'(artpsy_[a-z_]+)'/g)].map((m) => m[1]);
-    expect([...new Set(names)].sort()).toEqual([
-      "artpsy_contact", // 제출 표식 (hidden)
-      "artpsy_contact_nonce",
-      "artpsy_email",
+    // 두 자리를 따로 본다. $fields 배열이 도는 둘, 리터럴로 박힌 셋.
+    const fieldsAt = form.indexOf("$fields = array(");
+    const fieldsBlock = form.slice(fieldsAt, form.indexOf(");", fieldsAt));
+    expect([...fieldsBlock.matchAll(/'(artpsy_[a-z_]+)'/g)].map((m) => m[1])).toEqual([
       "artpsy_name",
+      "artpsy_email",
     ]);
-    // 배열 밖에 리터럴로 있는 둘.
-    expect(form).toContain('name="artpsy_message"');
-    expect(form).toContain('name="artpsy_consent"');
-    expect(form).not.toMatch(/name="artpsy_(?!name|email|message|consent|contact")/);
+
+    const literal = [...form.matchAll(/name="(artpsy_[a-z_]+)"/g)].map((m) => m[1]);
+    expect([...new Set(literal)].sort()).toEqual([
+      "artpsy_consent",
+      "artpsy_contact", // 제출 표식 (hidden)
+      "artpsy_message",
+    ]);
   });
 
   it("동의 체크박스가 required 다", () => {
@@ -295,5 +304,167 @@ describe("smoke 가 응답을 본다 (PR6-CONTACT-FORM §7)", () => {
     expect(smoke).toContain("checkContactForm");
     expect(smoke).toContain("artpsy_contact_nonce");
     expect(smoke).toContain("artpsy-consent");
+  });
+});
+
+describe("폼 처리 (PR 7) — L1. 도는지는 smoke 가 본다", () => {
+  const functionsPhp = read("../theme/artpsy/functions.php");
+  const smoke = read("../smoke/smoke.mjs");
+  const contact = read("../smoke/contact.mjs");
+
+  // 'artpsy_inquiry' 는 저장 함수에도 나온다. 첫 등장으로 자르면 등록 블록이 아니라
+  // 그쪽을 보게 되고, 아래 단언 다섯이 전부 엉뚱한 곳을 읽으면서 실패한다.
+  const registration = (() => {
+    let at = -1;
+    while ((at = functionsPhp.indexOf("register_post_type(", at + 1)) !== -1) {
+      const block = functionsPhp.slice(at, at + 1400);
+      if (block.includes("'artpsy_inquiry'")) return block;
+    }
+    return "";
+  })();
+
+  describe("저장소", () => {
+    it("등록 블록을 실제로 찾았다", () => {
+      // 못 찾으면 아래가 통째로 빈 문자열을 보고 조용히 실패한다.
+      expect(registration).toContain("'artpsy_inquiry'");
+    });
+
+    it("커스텀 포스트 타입이다 — 테이블을 만들지 않는다", () => {
+      // 테마가 테이블을 만들면 테마를 갈 때 데이터가 고아가 된다. 산출물은 테마고
+      // 문의는 고객 데이터다 (PR 4 에서 페이지를 테마에 안 넣은 것과 같은 이유).
+      expect(functionsPhp).toMatch(/register_post_type\(\s*\n?\s*'artpsy_inquiry'/);
+      expect(functionsPhp).not.toContain("dbDelta");
+      expect(functionsPhp).not.toMatch(/CREATE TABLE/i);
+    });
+
+    // 이 사이트에서 유일하게 남의 개인정보가 들어오는 자리다. 넷을 따로 단언한다 —
+    // 하나만 빠져도 나머지 셋이 통과하고, 새는 것은 화면에 안 보인다.
+    const CLOSED = [
+      [/'public'\s*=>\s*false/, "공개 쿼리 대상이 아니다"],
+      [/'publicly_queryable'\s*=>\s*false/, "URL 로 안 열린다"],
+      [/'exclude_from_search'\s*=>\s*true/, "사이트 검색에 안 뜬다"],
+      [/'show_in_rest'\s*=>\s*false/, "REST 로 안 샌다"],
+    ];
+
+    for (const [pattern, label] of CLOSED) {
+      it(`artpsy_inquiry — ${label}`, () => {
+        expect(registration).toMatch(pattern);
+      });
+    }
+
+    it("닫는 값 목록이 조용히 줄어들지 않았다", () => {
+      expect(CLOSED).toHaveLength(4);
+    });
+
+    it("관리자는 볼 수 있다 — 안 보이면 문의가 도착해도 아무도 모른다", () => {
+      expect(registration).toMatch(/'show_ui'\s*=>\s*true/);
+    });
+  });
+
+  describe("검증", () => {
+    // required 는 브라우저 것이다. POST 는 폼 없이도 온다.
+    const CHECKS = [
+      [/wp_verify_nonce\(/, "nonce"],
+      [/empty\(\s*\$raw\['artpsy_consent'\]\s*\)/, "동의"],
+      [/is_email\(/, "이메일"],
+      [/mb_substr\(/, "길이 상한을 서버에서도 자른다"],
+    ];
+
+    for (const [pattern, label] of CHECKS) {
+      it(`서버에서 ${label} 를 본다`, () => {
+        expect(functionsPhp).toMatch(pattern);
+      });
+    }
+
+    it("검증 목록이 조용히 줄어들지 않았다", () => {
+      expect(CHECKS).toHaveLength(4);
+    });
+
+    it("살균만 하고 저장할 때 이스케이프하지 않는다", () => {
+      // 이스케이프된 값이 DB 에 들어가면 관리 화면과 메일에서 &amp; 가 보이고,
+      // 그때는 원본이 무엇이었는지 알 방법이 없다.
+      const store = functionsPhp.slice(functionsPhp.indexOf("function artpsy_store_inquiry"));
+      expect(store.slice(0, 1200)).not.toMatch(/esc_html\(|esc_attr\(/);
+      expect(functionsPhp).toMatch(/sanitize_text_field\(/);
+      expect(functionsPhp).toMatch(/sanitize_email\(/);
+      expect(functionsPhp).toMatch(/sanitize_textarea_field\(/);
+    });
+  });
+
+  describe("흐름", () => {
+    it("성공은 302 다 — 새로고침이 재전송이 되면 안 된다", () => {
+      expect(functionsPhp).toMatch(/wp_safe_redirect\(\s*add_query_arg\(\s*'artpsy_sent'/);
+    });
+
+    it("실패는 리다이렉트하지 않는다 — 입력을 잃으면 안 된다", () => {
+      const handler = functionsPhp.slice(functionsPhp.indexOf("'template_redirect'"));
+      const upToRedirect = handler.slice(0, handler.indexOf("wp_safe_redirect"));
+      expect(upToRedirect).toContain("artpsy_contact_state( $checked )");
+      expect(upToRedirect).toMatch(/return;/);
+    });
+
+    it("폼이 이전 값과 에러를 받는다", () => {
+      expect(functionsPhp).toMatch(/function artpsy_contact_form_html\(\s*array \$values = array\(\), array \$errors = array\(\)\s*\)/);
+    });
+
+    it("동의는 되살리지 않는다 — 매번 새로 받는 것이 동의다", () => {
+      const consent = functionsPhp.slice(functionsPhp.indexOf("artpsy-consent"));
+      expect(consent.slice(0, 600)).not.toContain("checked");
+    });
+
+    it("JS 가 안 낀다", () => {
+      const form = functionsPhp.slice(functionsPhp.indexOf("function artpsy_contact_form_html"));
+      expect(form.slice(0, 4000)).not.toMatch(/onsubmit|addEventListener|fetch\(/);
+    });
+  });
+
+  describe("알림", () => {
+    it("저장이 먼저다 — 문의를 잃는 것이 알림을 잃는 것보다 나쁘다", () => {
+      const store = functionsPhp.slice(functionsPhp.indexOf("function artpsy_store_inquiry"));
+      expect(store.indexOf("wp_insert_post")).toBeLessThan(store.indexOf("wp_mail"));
+    });
+
+    it("실패가 조용하지 않다 — wp_mail 은 예외를 안 던진다", () => {
+      expect(functionsPhp).toMatch(/if \(\s*! \$sent\s*\)/);
+      expect(functionsPhp).toContain("_artpsy_mail_failed");
+    });
+
+    it("수신자가 하드코딩이 아니다", () => {
+      expect(functionsPhp).toMatch(/get_option\(\s*'admin_email'\s*\)/);
+    });
+  });
+
+  describe("smoke 가 여덟을 본다 (PR7-FORM-PROCESS §5)", () => {
+    it("검사가 배선돼 있다", () => {
+      expect(smoke).toContain("checkContactSubmission");
+    });
+
+    // 다섯이 "안 늘어나는 것" 을 재는데 그건 "아무 일도 안 일어남" 과 구분이 안 된다.
+    // 유효한 제출이 실제로 늘리는 것을 같은 회차에서 재는지가 이 파일의 핵심이다.
+    const JUDGMENTS = [
+      ["302", "유효한 제출이 리다이렉트한다"],
+      ["contact-form__sent", "따라간 페이지에 성공 표식이 있다"],
+      ["정확히 1", "행이 하나 는다"],
+      ["nonce 없이", "nonce 없으면 안 는다"],
+      ["동의 없이", "동의 없으면 안 는다"],
+      ["이메일이 틀린", "이메일이 틀리면 안 늘고 값이 남는다"],
+      ["pre_wp_mail", "알림 훅이 발동했다"],
+      ["show_in_rest", "밖에서 안 보인다"],
+    ];
+
+    for (const [needle, label] of JUDGMENTS) {
+      it(label, () => {
+        expect(contact).toContain(needle);
+      });
+    }
+
+    it("여덟이다", () => {
+      expect(JUDGMENTS).toHaveLength(8);
+    });
+
+    it("만든 것을 지운다 — smoke 가 DB 를 어지럽히지 않는다", () => {
+      expect(contact).toContain("wp_delete_post");
+      expect(contact).toContain("before.includes(id)");
+    });
   });
 });

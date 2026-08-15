@@ -341,36 +341,62 @@ add_filter(
  * 받는 것은 셋뿐이다(이름·이메일·문의 내용). 처리방침 동의는 required 로 두는데,
  * **브라우저가 막는 것으로 끝내지 않는다** — 서버에서 다시 보는 것은 PR 7 이다.
  */
-function artpsy_contact_form_html() {
+function artpsy_contact_form_html( array $values = array(), array $errors = array() ) {
 	$fields = array(
 		array( 'artpsy_name', 'text', '이름', 'name', 80 ),
 		array( 'artpsy_email', 'email', '회신 받을 이메일', 'email', 160 ),
 	);
 
+	$error_html = static function ( $key ) use ( $errors ) {
+		if ( empty( $errors[ $key ] ) ) {
+			return '';
+		}
+		return '<span class="contact-form__error" id="' . esc_attr( str_replace( '_', '-', $key ) ) . '-error">'
+			. esc_html( $errors[ $key ] ) . '</span>';
+	};
+
 	$html = '<form class="contact-form__form" method="post" action="">';
 	$html .= wp_nonce_field( 'artpsy_contact', 'artpsy_contact_nonce', true, false );
 	$html .= '<input type="hidden" name="artpsy_contact" value="1" />';
 
+	if ( ! empty( $errors['nonce'] ) ) {
+		$html .= '<p class="contact-form__error" role="alert">' . esc_html( $errors['nonce'] ) . '</p>';
+	}
+
 	foreach ( $fields as list( $name, $type, $label, $autocomplete, $maxlength ) ) {
-		$id    = str_replace( '_', '-', $name );
-		$html .= '<p class="contact-form__field">'
+		$id      = str_replace( '_', '-', $name );
+		$invalid = ! empty( $errors[ $name ] );
+		$html   .= '<p class="contact-form__field">'
 			. '<label for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label>'
 			. '<input id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '"'
 			. ' type="' . esc_attr( $type ) . '" maxlength="' . (int) $maxlength . '"'
-			. ' autocomplete="' . esc_attr( $autocomplete ) . '" required />'
+			. ' autocomplete="' . esc_attr( $autocomplete ) . '"'
+			. ' value="' . esc_attr( $values[ $name ] ?? '' ) . '"'
+			. ( $invalid ? ' aria-invalid="true" aria-describedby="' . esc_attr( $id ) . '-error"' : '' )
+			. ' required />'
+			. $error_html( $name )
 			. '</p>';
 	}
 
-	$html .= '<p class="contact-form__field">'
+	$message_invalid = ! empty( $errors['artpsy_message'] );
+	$html           .= '<p class="contact-form__field">'
 		. '<label for="artpsy-message">문의 내용</label>'
-		. '<textarea id="artpsy-message" name="artpsy_message" rows="6" maxlength="2000" required></textarea>'
+		. '<textarea id="artpsy-message" name="artpsy_message" rows="6" maxlength="2000"'
+		. ( $message_invalid ? ' aria-invalid="true" aria-describedby="artpsy-message-error"' : '' )
+		. ' required>' . esc_textarea( $values['artpsy_message'] ?? '' ) . '</textarea>'
+		. $error_html( 'artpsy_message' )
 		. '</p>';
 
+	// 동의는 되살리지 않는다. 매번 새로 받는 것이 동의다 — 지난 요청의 체크를 다시 켜 두면
+	// 사람이 안 누른 것을 눌렀다고 기록하게 된다.
 	$html .= '<p class="contact-form__consent">'
-		. '<input id="artpsy-consent" name="artpsy_consent" type="checkbox" value="1" required />'
+		. '<input id="artpsy-consent" name="artpsy_consent" type="checkbox" value="1"'
+		. ( ! empty( $errors['artpsy_consent'] ) ? ' aria-invalid="true" aria-describedby="artpsy-consent-error"' : '' )
+		. ' required />'
 		. '<label for="artpsy-consent">'
 		. '<a class="link" href="/privacy/">개인정보 처리방침</a>을 읽었고 위 항목의 수집·이용에 동의합니다.'
 		. '</label>'
+		. $error_html( 'artpsy_consent' )
 		. '</p>';
 
 	$html .= '<p class="contact-form__submit"><button type="submit" class="link">보내기</button></p>';
@@ -378,6 +404,171 @@ function artpsy_contact_form_html() {
 
 	return $html;
 }
+
+/**
+ * 이 요청의 처리 결과를 들고 있는다. 전역 변수 대신 함수 하나로 둔다 — 읽는 곳이
+ * render_block 필터 하나뿐이고, 그 사이에 누가 덮어쓸 여지를 안 만든다.
+ */
+function artpsy_contact_state( array $state = null ) {
+	static $current = array();
+	if ( null !== $state ) {
+		$current = $state;
+	}
+	return $current;
+}
+
+/**
+ * 서버에서 다시 본다. **브라우저의 required 를 믿지 않는다** — POST 는 폼 없이도 온다.
+ *
+ * 살균만 하고 이스케이프는 안 한다. 이스케이프된 값이 DB 에 들어가면 관리 화면과 메일에서
+ * `&amp;` 가 보이고, 그때는 원본이 무엇이었는지 알 방법이 없다. 이스케이프는 출력에서 한다.
+ *
+ * 길이 상한을 서버에서도 자른다. maxlength 는 브라우저 것이라 POST 를 손으로 만들면 없다.
+ */
+function artpsy_validate_contact( array $raw ) {
+	$values = array(
+		'artpsy_name'    => mb_substr( sanitize_text_field( wp_unslash( $raw['artpsy_name'] ?? '' ) ), 0, 80 ),
+		'artpsy_email'   => mb_substr( sanitize_email( wp_unslash( $raw['artpsy_email'] ?? '' ) ), 0, 160 ),
+		'artpsy_message' => mb_substr( sanitize_textarea_field( wp_unslash( $raw['artpsy_message'] ?? '' ) ), 0, 2000 ),
+	);
+
+	$errors = array();
+
+	$nonce = isset( $raw['artpsy_contact_nonce'] ) ? sanitize_text_field( wp_unslash( $raw['artpsy_contact_nonce'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'artpsy_contact' ) ) {
+		$errors['nonce'] = '요청이 만료됐습니다. 아래 내용을 그대로 두고 다시 보내 주세요.';
+	}
+
+	// 동의는 요구사항에 없다. 요구사항분석 R6 이 짚은 자리이고, 심리상담 도메인이라 넣는다.
+	if ( empty( $raw['artpsy_consent'] ) ) {
+		$errors['artpsy_consent'] = '개인정보 수집·이용에 동의해야 보낼 수 있습니다.';
+	}
+
+	if ( '' === $values['artpsy_name'] ) {
+		$errors['artpsy_name'] = '이름을 적어 주세요.';
+	}
+
+	if ( ! is_email( $values['artpsy_email'] ) ) {
+		$errors['artpsy_email'] = '회신 받을 이메일 주소를 확인해 주세요.';
+	}
+
+	if ( '' === $values['artpsy_message'] ) {
+		$errors['artpsy_message'] = '문의 내용을 적어 주세요.';
+	}
+
+	return array(
+		'values' => $values,
+		'errors' => $errors,
+	);
+}
+
+/**
+ * 저장하고 알린다. **저장이 먼저다** — 문의를 잃는 것이 알림을 잃는 것보다 나쁘다.
+ *
+ * wp_mail 은 실패해도 예외를 안 던지고 wp-env 에서는 아예 안 나간다. 반환값을 보고
+ * 실패를 포스트 메타에 남긴다 — 저장은 그대로 두고 관리자만 보는 자리에 적는 것이다.
+ */
+function artpsy_store_inquiry( array $values ) {
+	$post_id = wp_insert_post(
+		array(
+			'post_type'    => 'artpsy_inquiry',
+			'post_status'  => 'private',
+			'post_title'   => $values['artpsy_name'],
+			'post_content' => $values['artpsy_message'],
+		),
+		true
+	);
+
+	if ( is_wp_error( $post_id ) ) {
+		return $post_id;
+	}
+
+	update_post_meta( $post_id, '_artpsy_email', $values['artpsy_email'] );
+
+	$sent = wp_mail(
+		get_option( 'admin_email' ),
+		'[artpsy] 새 문의 — ' . $values['artpsy_name'],
+		"이름: {$values['artpsy_name']}\n이메일: {$values['artpsy_email']}\n\n{$values['artpsy_message']}\n",
+		array( 'Reply-To: ' . $values['artpsy_email'] )
+	);
+
+	if ( ! $sent ) {
+		update_post_meta( $post_id, '_artpsy_mail_failed', 1 );
+	}
+
+	return $post_id;
+}
+
+/**
+ * 제출을 받는다. `artpsy_contact` 가 있는 POST 일 때만 돈다.
+ *
+ * 성공하면 302 로 넘긴다 — 새로고침이 재전송이 되면 안 된다. 그러면 "행이 정확히 하나 는다"
+ * 가 사람 손에서 깨진다.
+ *
+ * 실패하면 리다이렉트하지 않는다 — 입력을 잃으면 안 된다. 긴 문의를 쓴 사람이 이메일
+ * 오타 하나로 전부 다시 쓰게 된다. 같은 요청에서 폼을 값과 함께 다시 그린다.
+ */
+add_action(
+	'template_redirect',
+	function () {
+		if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+			return;
+		}
+
+		if ( ! isset( $_POST['artpsy_contact'] ) ) {
+			return;
+		}
+
+		$checked = artpsy_validate_contact( $_POST );
+
+		if ( ! empty( $checked['errors'] ) ) {
+			artpsy_contact_state( $checked );
+			return;
+		}
+
+		$post_id = artpsy_store_inquiry( $checked['values'] );
+
+		if ( is_wp_error( $post_id ) ) {
+			$checked['errors']['nonce'] = '보내지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
+			artpsy_contact_state( $checked );
+			return;
+		}
+
+		wp_safe_redirect( add_query_arg( 'artpsy_sent', '1', get_permalink() ) );
+		exit;
+	}
+);
+
+/**
+ * 문의 저장소. 커스텀 테이블을 만들지 않는다 — 테마를 갈 때 데이터가 고아가 되고,
+ * 산출물은 테마지만 문의는 고객 데이터다 (PR 4 에서 페이지를 테마에 안 넣은 것과 같은 이유).
+ *
+ * 밖에서 안 보이게 하는 값 넷이 이 등록의 본론이다. 이 사이트에서 유일하게 남의
+ * 개인정보가 들어오는 자리라 기본값에 기대지 않는다.
+ */
+add_action(
+	'init',
+	function () {
+		register_post_type(
+			'artpsy_inquiry',
+			array(
+				'labels'              => array(
+					'name'          => '문의',
+					'singular_name' => '문의',
+				),
+				'public'              => false,
+				'publicly_queryable'  => false,
+				'exclude_from_search' => true,
+				'show_in_rest'        => false,
+				'show_ui'             => true,
+				'show_in_menu'        => true,
+				'menu_icon'           => 'dashicons-email',
+				'capability_type'     => 'post',
+				'supports'            => array( 'title', 'editor' ),
+			)
+		);
+	}
+);
 
 add_filter(
 	'render_block',
@@ -396,17 +587,26 @@ add_filter(
 			return $content;
 		}
 
+		$state  = artpsy_contact_state();
+		$values = $state['values'] ?? array();
+		$errors = $state['errors'] ?? array();
+
+		$notice = '';
+		// 성공은 리다이렉트 뒤에 온다. 에러가 있는 요청에는 이 표식이 없다.
+		if ( empty( $errors ) && isset( $_GET['artpsy_sent'] ) ) {
+			$notice = '<p class="contact-form__sent" role="status">보내졌습니다. 확인하고 회신드리겠습니다.</p>';
+		}
+
 		// 안쪽을 **갈아끼운다.** 덧붙이면 캔버스용 설명이 프런트에도 남는다.
 		//
 		// 그리고 이 형태라야 캔버스가 빈 상자가 아니다. 빈 그룹은 코어가
 		// "Group blocks together. Select a layout:" 이라는 초대장을 내는데
 		// templateLock: all 이 그것을 조용히 거절한다 — 이 파일 위쪽 core/buttons 주석이
-		// 적어 둔 **"열린 것처럼 보이는 잠금"** 과 같은 모양이다 (tester 가 캔버스에서
-		// 실제로 클릭해 innerCount 0 → 0 을 확인했다).
+		// 적어 둔 **"열린 것처럼 보이는 잠금"** 과 같은 모양이다.
 		return preg_replace_callback(
 			'#^(.*?<div[^>]*>).*(</div>\s*)$#s',
-			static function ( $matched ) {
-				return $matched[1] . artpsy_contact_form_html() . $matched[2];
+			static function ( $matched ) use ( $notice, $values, $errors ) {
+				return $matched[1] . $notice . artpsy_contact_form_html( $values, $errors ) . $matched[2];
 			},
 			$content,
 			1
