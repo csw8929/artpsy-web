@@ -3,6 +3,12 @@
 // L1(파일이 그렇게 적혀 있나)은 vitest, L3(보내면 남고 보이나)는 smoke/db.mjs 가 자리만 쥔다.
 import { ROUTES, EXPECTED_ROUTE_COUNT } from "./routes.mjs";
 import { muPluginLoaded } from "./db.mjs";
+import { extractImageUrls } from "./assets.mjs";
+
+// DB 레코드가 있다고 파일이 서는 게 아니다 — 저널 대표 이미지가 그렇게 깨졌었다
+// (SEED-EXISTS-DECIDE). 200만으로는 "이미지 URL을 0개 모으고 통과"하는 구멍이 남아
+// 하드코딩해 단언한다 — ROUTES와 같은 이유다.
+const EXPECTED_ASSET_COUNT = 10;
 
 const BASE = process.env.WP_BASE_URL ?? "http://localhost:8888";
 
@@ -82,6 +88,40 @@ async function checkMuPlugin() {
   }
 }
 
+async function checkAssets() {
+  // 시드된 라우트를 돌면서 그 문서가 참조하는 이미지 URL을 모으고 전부 200인지 본다.
+  // 이 방법으로 DB 레코드는 있는데 파일이 없는 상태(SEED-EXISTS-DECIDE)가 조용한
+  // 상태에서 시끄러운 상태로 바뀐다. 원인은 안 판다 — 여기가 잡는 것은 증상이다.
+  const paths = [...new Set(ROUTES.map((route) => route.path))];
+  const urls = new Set();
+  for (const path of paths) {
+    const { body } = await fetchHtml(path);
+    for (const url of extractImageUrls(body, BASE)) urls.add(url);
+  }
+
+  if (urls.size !== EXPECTED_ASSET_COUNT) {
+    return [
+      `이미지 URL을 ${urls.size}개 모았는데 EXPECTED_ASSET_COUNT는 ${EXPECTED_ASSET_COUNT}다. ` +
+        `자산이 늘거나 줄었으면 이 수도 같이 고쳐라.`,
+    ];
+  }
+
+  const failures = [];
+  for (const url of urls) {
+    let res;
+    try {
+      res = await fetch(url);
+    } catch (err) {
+      failures.push(`${url} 에 연결할 수 없다: ${err.message}`);
+      continue;
+    }
+    if (res.status !== 200) failures.push(`${url} → HTTP ${res.status} (기대: 200)`);
+  }
+
+  if (failures.length === 0) console.log(`OK  이미지 ${urls.size}개 전부 200`);
+  return failures;
+}
+
 async function main() {
   if (ROUTES.length !== EXPECTED_ROUTE_COUNT) {
     throw new Error(
@@ -90,7 +130,7 @@ async function main() {
     );
   }
 
-  const failures = [...(await checkRoutes()), ...(await checkMuPlugin())];
+  const failures = [...(await checkRoutes()), ...(await checkMuPlugin()), ...(await checkAssets())];
 
   if (failures.length > 0) {
     console.error("\n실패:");
