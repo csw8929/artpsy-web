@@ -467,32 +467,46 @@ describe("히어로 메타 (매핑 §4.2.0)", () => {
   });
 });
 
-describe("사이트 헤더 (PR-3)", () => {
-  // 헤더가 흐름에 들어가면 min-height: 100svh 인 히어로가 그만큼 밀려 첫 화면
-  // 풀블리드가 깨진다. 그리고 LCP 조사에서 8px 짜리 흐름 헤더 하나가 LCP 후보를
-  // 뒤집었다 — fixed 는 같은 조작에서 안 뒤집었고 기하는 셋 다 같았다.
+describe("헤더와 본문의 겹침 (PR-4 §3)", () => {
+  // PR-3 은 .site-header 를 position: fixed 로 띄웠다. 페이지 다섯이 생기면서 못 쓴다 —
+  // 히어로가 없는 템플릿에서 첫 콘텐츠가 헤더 아래로 들어가고, 그것을 여백으로 메우려면
+  // 헤더 높이가 값으로 있어야 하는데 그 값이 없다(모바일 두 줄이면 하나가 아니다).
   //
-  // 셋을 따로 단언한다. position 만 보면 z-index 가 빠져도 통과하는데, .hero 가
-  // position: relative 라 헤더와 같은 층에 그려지고 DOM 에서 뒤라 그때 히어로가
-  // 헤더를 덮는다 — "헤더가 있는데 안 보인다"가 된다.
+  // 그래서 겹침이 .wp-site-blocks 그리드로 내려왔다. 기본은 헤더 1행·본문 2행이고
+  // 히어로 템플릿만 같은 칸이다. 어느 쪽도 숫자가 안 들어간다.
   const RULES = [
-    [/position:\s*fixed/, "흐름 밖으로 뺀다 — 히어로가 밀리지 않게"],
-    [/z-index:\s*\d/, ".hero 가 relative 라 없으면 히어로가 헤더를 덮는다"],
-    [/top:\s*0/, "화면 위에 붙인다"],
+    [".wp-site-blocks", /display:\s*grid/, "겹침을 그리드가 정한다"],
+    // 이 줄이 빠지면 헤더가 행 높이(히어로 100svh)만큼 늘어나고 z-index 와 겹쳐
+    // 히어로 전체가 헤더 박스에 덮인다. 축소 재현 실측 813 대 66.
+    [".wp-site-blocks", /align-items:\s*start/, "없으면 헤더가 히어로 전체를 덮는다"],
+    [".wp-site-blocks:has(> main.tpl-home) > header", /grid-area:\s*1 \/ 1/, "히어로 템플릿만 같은 칸"],
+    // 그리드 아이템은 position 없이도 z-index 를 받는다. 없으면 DOM 에서 뒤인
+    // 히어로가 헤더를 덮는다 — "헤더가 있는데 안 보인다"가 된다.
+    [".wp-site-blocks:has(> main.tpl-home) > header", /z-index:\s*\d/, "없으면 히어로가 헤더를 덮는다"],
   ];
 
-  for (const [pattern, label] of RULES) {
-    it(`.site-header — ${label}`, () => {
-      expect(bodyOf(".site-header")).toMatch(pattern);
+  for (const [selector, pattern, label] of RULES) {
+    it(`${selector} — ${label}`, () => {
+      expect(bodyOf(selector)).toMatch(pattern);
     });
   }
 
   it("규칙 목록이 조용히 줄어들지 않았다", () => {
-    expect(RULES).toHaveLength(3);
+    expect(RULES).toHaveLength(4);
   });
 
-  it("가로 패딩이 루트 패딩이다 — 헤더가 흐름 밖이라 has-global-padding 이 안 걸린다", () => {
-    // 안 맞추면 로고가 히어로 콘텐츠와 다른 선에서 시작한다. 값을 리터럴로 적으면
+  it("겹치는 쪽을 표식이 고른다 — 부정 조건으로 잡지 않는다", () => {
+    // "히어로가 없으면" 으로 잡으면 새 템플릿이 조용히 맞고, 맞는 것이 옳은지 아무도
+    // 안 본다. 겹치는 것은 하나뿐이고 그 하나가 명시적으로 고른다.
+    expect(withoutComments).not.toMatch(/:not\(\s*:has\(/);
+  });
+
+  it(".site-header 가 흐름 밖으로 안 나간다 — 히어로 없는 템플릿을 덮는다", () => {
+    expect(bodyOf(".site-header")).not.toMatch(/position:\s*(fixed|absolute)/);
+  });
+
+  it("가로 패딩이 루트 패딩이다 — 헤더 파트는 has-global-padding 이 아니다", () => {
+    // 안 맞추면 로고가 페이지 여백과 다른 선에서 시작한다. 값을 리터럴로 적으면
     // theme.json 의 clamp 과 두 벌이 되어 갈린다.
     const body = bodyOf(".site-header");
     expect(body).toContain("var(--wp--style--root--padding-left)");
