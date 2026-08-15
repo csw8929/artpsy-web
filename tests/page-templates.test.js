@@ -183,6 +183,27 @@ describe("문의 폼 (PR 6) — 마크업까지. 동작은 PR 7 이다", () => {
   const footer = read("../theme/artpsy/parts/footer.html");
   const functionsPhp = read("../theme/artpsy/functions.php");
 
+  // 빈 그룹은 코어가 "Group blocks together. Select a layout:" 이라는 초대장을 내는데
+  // templateLock: all 이 그것을 조용히 거절한다 — functions.php 의 core/buttons 주석이
+  // 적어 둔 "열린 것처럼 보이는 잠금" 과 같은 모양이다(tester 가 캔버스에서 클릭해
+  // innerCount 0 → 0 을 확인했다). 그래서 자리에 설명 문단을 두고 렌더에서 갈아끼운다.
+  it("캔버스에 설명 문단이 있다 — 빈 상자도 초대장도 아니다", () => {
+    expect(contact).toContain('"className":"contact-form__hint"');
+    expect(contact).toMatch(/편집 화면에는 안 보입니다/);
+  });
+
+  it("그 문단이 잠겨 있다 — 지우면 폼이 조용히 사라지고 200 은 그대로다", () => {
+    const hint = contact.slice(contact.indexOf('"className":"contact-form__hint"'));
+    expect(hint.slice(0, 120)).toContain('"lock":{"move":true,"remove":true}');
+  });
+
+  it("렌더가 안쪽을 갈아끼운다 — 덧붙이면 설명이 프런트에 남는다", () => {
+    // smoke 의 "프런트에 설명 문구가 없다" 가 이것의 짝이다. 그건 문구 확인이 아니라
+    // **주입 실패 경보** 다 — 필터가 죽으면 화면은 멀쩡해 보이고 설명만 남는다.
+    expect(functionsPhp).toContain("preg_replace_callback");
+    expect(functionsPhp).not.toMatch(/artpsy_contact_form_html\(\)\s*\.\s*'<\/div>'/);
+  });
+
   it("폼이 템플릿에 리터럴로 없다 — nonce 를 서버가 낸다", () => {
     // 정적 파일에 nonce 를 적어 두면 그 값이 굳고, "nonce 없이 POST 하면 안 들어간다"
     // (PR 7 의 판정 4)를 잴 수 없게 된다.
