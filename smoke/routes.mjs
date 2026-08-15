@@ -5,6 +5,7 @@
 // marker 는 클래스 토큰이다. body class 는 안 쓴다 — "어느 페이지냐"이지
 // "어느 템플릿이 골렸냐"가 아니다 (PR2-SMOKE §1).
 import { PAGES, pathOf, markerOf } from "./pages.mjs";
+import { JOURNAL, ARCHIVE_PATH, pathOf as journalPathOf, MARKER_ARCHIVE, MARKER_SINGLE } from "./journal.mjs";
 
 export const ROUTES = [
   {
@@ -35,10 +36,31 @@ export const ROUTES = [
     marker: markerOf(page),
     expect: true,
   })),
+  // 저널 아카이브와 낱글. 아카이브는 has_archive 가, 낱글은 리라이트 슬러그가 만든다 —
+  // 둘 다 register_post_type 만으로는 안 서고 flush 가 필요하다 (smoke/seed-journal.mjs).
+  {
+    label: `저널 아카이브 — ${MARKER_ARCHIVE} 표식이 있어야 한다`,
+    path: ARCHIVE_PATH,
+    marker: MARKER_ARCHIVE,
+    expect: true,
+  },
+  {
+    // 낱글은 표식이 아카이브와 달라야 한다. 같으면 single 템플릿이 없어도 통과한다.
+    label: `저널 낱글 — ${MARKER_SINGLE} 표식이 있어야 한다`,
+    path: journalPathOf(JOURNAL[0]),
+    marker: MARKER_SINGLE,
+    expect: true,
+  },
+  {
+    label: "저널 낱글 — 아카이브 표식은 없어야 한다",
+    path: journalPathOf(JOURNAL[0]),
+    marker: MARKER_ARCHIVE,
+    expect: false,
+  },
 ];
 
 // 라우트가 늘 때마다 이 수를 손으로 올린다. 표만 늘리고 세는 곳이 없으면
 // "장치가 아무것도 안 재는 상태"로 초록불이 난다 (PR2-SMOKE §2-1).
 //
-// 3(프론트) + 5(페이지) = 8. PAGES 를 늘리면 여기가 터진다 — 그것이 의도다.
-export const EXPECTED_ROUTE_COUNT = 8;
+// 3(프론트) + 5(페이지) + 3(저널) = 11. 표를 늘리면 여기가 터진다 — 그것이 의도다.
+export const EXPECTED_ROUTE_COUNT = 11;

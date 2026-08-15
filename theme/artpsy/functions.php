@@ -103,8 +103,10 @@ add_filter(
  * 하고, Journal 본문이 무엇을 쓸지는 아직 정해지지 않았다. 등록된 것에서 빼는 형태라
  * 코어가 블록을 늘려도 따라온다.
  *
- * $context 로 분기하지 않는다. 분기할 대상(Journal 포스트 타입)이 아직 없고, 없는 것을
- * 위한 분기가 다음 불일치가 된다 (설계 §3.1).
+ * $context 로 분기하지 않는다. **대상은 이제 있다** — PR 5 가 artpsy_journal 을 등록했다.
+ * 그래도 분기할 근거가 없다: 버튼을 막는 이유(디자인에 버튼 컴포넌트가 없다)는 저널
+ * 본문에서도 그대로고, 저널이 무엇을 쓸지는 아직 안 정해졌다. 블록 목록이 정해지면
+ * 그때 본다 (설계 §3.1).
  */
 add_filter(
 	'allowed_block_types_all',
@@ -171,8 +173,22 @@ add_action(
 	'after_setup_theme',
 	function () {
 		add_image_size( 'hero-portrait', 1080, 1440, true );
+		add_theme_support( 'post-thumbnails' );
 	}
 );
+
+/**
+ * 저널 썸네일에는 사이즈를 새로 등록하지 않는다. 위 hero-portrait 와 갈리는 자리라 적어 둔다.
+ *
+ * hero-portrait 가 있는 이유는 **박스의 비율이 뷰포트마다 다르기** 때문이다 — 폰에서
+ * 히어로는 2.6:1 세로인데 아트는 1.48:1 가로라, 폭으로 고르는 코어 srcset 은 무엇을 골라도
+ * 틀린다. 그건 아트디렉션이고 크롭이 파일 쪽에 있어야 한다.
+ *
+ * 저널 썸네일은 그 조건이 아니다. 박스가 어느 폭에서나 4:3 하나고, 크롭은 CSS 가
+ * aspect-ratio + object-fit: cover 로 이미 한다. 남는 것은 "몇 픽셀을 보낼까" 뿐이라
+ * 코어의 폭 기반 srcset 이 정확히 그 일을 한다. 사이즈를 더 등록하면 업로드마다 파일이
+ * 늘고 고르는 규칙은 안 는다.
+ */
 
 /**
  * 히어로 이미지를 <picture> 로 감싼다. 폭 기반 srcset 으로는 위 문제를 못 고치므로
@@ -212,6 +228,95 @@ add_filter(
 		return preg_replace(
 			'/(<img\b[^>]*>)/',
 			'<picture>' . $source . '$1</picture>',
+			$content,
+			1
+		);
+	},
+	10,
+	2
+);
+
+/**
+ * 저널 포스트 타입. 여기서부터 개수가 편집자에게 달린다 (씨앗 3).
+ *
+ * has_archive 를 'journal' 로 둬서 아카이브가 /journal/ 이다. 메인의 id="journal" 섹션과
+ * 이름이 겹치는데 **의도한 겹침이다** — 같은 것의 티저와 목록이라 다른 이름을 붙이면
+ * 편집자가 둘을 다른 것으로 읽는다.
+ *
+ * show_in_rest 가 없으면 블록 에디터가 안 열린다. 클래식 편집기로 떨어지고 이 테마의
+ * 블록은 하나도 안 보인다 — 조용히 나빠지는 쪽이라 명시한다.
+ */
+add_action(
+	'init',
+	function () {
+		register_post_type(
+			'artpsy_journal',
+			array(
+				'labels'       => array(
+					'name'          => '저널',
+					'singular_name' => '저널 글',
+				),
+				'public'       => true,
+				'show_in_rest' => true,
+				'has_archive'  => 'journal',
+				'rewrite'      => array(
+					'slug'       => 'journal',
+					'with_front' => false,
+				),
+				'menu_icon'    => 'dashicons-book-alt',
+				'supports'     => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
+			)
+		);
+	}
+);
+
+/**
+ * 리라이트 규칙을 테마 활성화 때 다시 쓴다. 규칙은 DB 옵션이라 register_post_type 만으로는
+ * 안 생기고, 그 상태에서 /journal/ 은 404 다 — 템플릿이 있어도 그렇다. PR 4 에서 "템플릿
+ * 파일만으로는 URL 이 안 생긴다"에 걸린 것과 같은 자리이고, 여기서는 원인이 쿼리가 아니라
+ * 리라이트다.
+ *
+ * 이미 활성화된 테마에 이 코드가 pull 로 들어오면 이 훅이 안 돈다. wp-env 쪽은
+ * smoke/seed-pages.mjs 가 같이 flush 한다.
+ */
+add_action(
+	'after_switch_theme',
+	function () {
+		flush_rewrite_rules();
+	}
+);
+
+/**
+ * 대표 이미지에 첨부의 캡션을 붙인다. CC 표시 의무가 그 이미지를 따라다녀야 하는데
+ * core/post-featured-image 는 캡션을 안 낸다 — 그래서 크레딧이 붙을 자리가 없다.
+ *
+ * 크레딧을 템플릿에 하드코딩하지 않는 이유가 이것이다. 편집자가 대표 이미지를 바꾸면
+ * 크레딧도 같이 바뀌어야 하고, 첨부의 캡션에 두면 그것이 저절로 따라온다
+ * (PR3-PARTS §5 에서 저널 썸네일 크레딧을 캡션에 둔 것과 같은 판단이다).
+ *
+ * 아카이브에서도 뗀다는 선택지가 있었는데 안 뗐다. 같은 이미지를 두 화면에 띄우면서
+ * 한쪽에만 표시를 붙이는 것은 의무의 해석에 기대는 것이고, 기대야 할 이유가 없다.
+ */
+add_filter(
+	'render_block',
+	function ( $content, $block ) {
+		if ( 'core/post-featured-image' !== ( $block['blockName'] ?? '' ) ) {
+			return $content;
+		}
+
+		if ( false !== strpos( $content, '<figcaption' ) ) {
+			return $content;
+		}
+
+		$id      = get_post_thumbnail_id();
+		$caption = $id ? wp_get_attachment_caption( $id ) : '';
+		if ( '' === $caption ) {
+			return $content;
+		}
+
+		return preg_replace(
+			'#</figure>\s*$#',
+			'<figcaption class="wp-element-caption">' . wp_kses_post( $caption ) . '</figcaption></figure>',
 			$content,
 			1
 		);
